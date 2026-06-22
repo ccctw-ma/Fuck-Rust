@@ -120,8 +120,8 @@ mod tests {
             .expect("foundation summary");
 
         assert_eq!(summaries.len(), Stage::all().len());
-        assert_eq!(foundation.lesson_count, 2);
-        assert_eq!(foundation.exercise_count, 4);
+        assert_eq!(foundation.lesson_count, 3);
+        assert_eq!(foundation.exercise_count, 7);
         assert_eq!(foundation.completed_count, 2);
     }
 

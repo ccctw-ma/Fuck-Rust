@@ -170,13 +170,29 @@ pub struct DemoBlockProps {
     pub output: &'static str,
     pub takeaway: &'static str,
     pub output_label: &'static str,
+    pub book_url: &'static str,
+    pub book_label: &'static str,
+    pub goals: Vec<&'static str>,
 }
 
 #[function_component(DemoBlock)]
 pub fn demo_block(props: &DemoBlockProps) -> Html {
     html! {
         <aside class="demo-panel">
-            <p class="demo-title">{ props.title }</p>
+            <div class="demo-heading">
+                <p class="demo-title">{ props.title }</p>
+                <a class="pill strong" href={props.book_url} target="_blank" rel="noreferrer">
+                    { props.book_label }
+                </a>
+            </div>
+            <div class="guide-list">
+                { for props.goals.iter().enumerate().map(|(index, goal)| html! {
+                    <p class="guide-step">
+                        <span>{ format!("{:02}", index + 1) }</span>
+                        { *goal }
+                    </p>
+                }) }
+            </div>
             <pre class="code-block"><code>{ props.code }</code></pre>
             <span class="pill demo-output">{ format!("{}: {}", props.output_label, props.output) }</span>
             <p class="card-text">{ props.takeaway }</p>

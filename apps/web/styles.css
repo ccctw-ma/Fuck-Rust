@@ -235,6 +235,7 @@ button {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 24px;
+  align-items: start;
 }
 
 .side-rail,
@@ -326,12 +327,14 @@ button {
 }
 
 .rail-item-title {
+  display: block;
   margin: 0;
   font-size: 12px;
   font-weight: 800;
 }
 
 .rail-item-meta {
+  display: block;
   margin: 4px 0 0;
   color: var(--faint);
   font-size: 11px;
@@ -681,10 +684,42 @@ button {
     color-mix(in srgb, var(--panel-strong) 28%, transparent);
 }
 
+.demo-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .demo-title {
   margin: 0;
   color: var(--amber);
   font-size: 14px;
+  font-weight: 900;
+}
+
+.guide-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 18%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--rust-black) 18%, transparent);
+}
+
+.guide-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.guide-step span {
+  color: var(--mint);
+  font-variant-numeric: tabular-nums;
   font-weight: 900;
 }
 
@@ -756,7 +791,12 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .main-stack {
+    order: 1;
+  }
+
   .side-rail {
+    order: 2;
     position: static;
     height: auto;
   }
@@ -782,6 +822,10 @@ button {
     flex-direction: column;
   }
 
+  .brand {
+    min-width: 0;
+  }
+
   .nav {
     justify-content: flex-start;
   }
@@ -793,5 +837,18 @@ button {
 
   .hero-title {
     font-size: 48px;
+    letter-spacing: -0.08em;
+  }
+
+  .exercise-panel,
+  .hero-card,
+  .panel,
+  .side-rail {
+    border-radius: 24px;
+  }
+
+  .exercise-title {
+    font-size: 40px;
+    letter-spacing: -0.06em;
   }
 }

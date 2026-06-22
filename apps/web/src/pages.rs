@@ -383,6 +383,9 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
             output={lesson.demo.output}
             takeaway={demo_takeaway(lesson, language)}
             output_label={t(language, "demo_output")}
+            book_url={lesson.book_url}
+            book_label={t(language, "book_ref")}
+            goals={lesson.goals.iter().enumerate().map(|(index, _)| lesson_goal(lesson, index, language)).collect::<Vec<_>>()}
         />
     }
 }

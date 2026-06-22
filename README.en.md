@@ -4,8 +4,8 @@ A progressive Rust learning site implemented entirely in Rust. The frontend is b
 
 ## Features
 
-- Learning path follows The Rust Programming Language: variables, control flow, ownership, borrowing, Result, iterators, traits, and lifetimes.
-- Interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering.
+- Learning path follows 12 chapters from The Rust Programming Language: variables, control flow, data types, ownership, slices, borrowing, structs, collections, error handling, iterators, generics, and concurrency.
+- 30 interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering.
 - Instant feedback with expected answers, explanations, and the next exercise.
 - Mini demos linked to Rust Book chapters.
 - Local progress stored in browser `localStorage`, including language and theme preferences.

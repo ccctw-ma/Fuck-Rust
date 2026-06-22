@@ -8,16 +8,16 @@ A progressive Rust learning site implemented entirely in Rust. The frontend is Y
 
 ## 功能 / Features
 
-- 按 The Rust Programming Language 组织学习路径：变量、控制流、所有权、借用、Result、迭代器、trait 和生命周期。
-- 在线互动练习：单选、填空、代码输出判断、步骤排序。
+- 按 The Rust Programming Language 组织 12 个学习章节：变量、控制流、数据类型、所有权、切片、借用、结构体、集合、错误处理、迭代器、泛型和并发。
+- 30 道在线互动练习：单选、填空、代码输出判断、步骤排序。
 - 即时反馈：提交后展示参考答案、解释和下一题入口。
 - 小 demo：每课提供 Rust Book 对应章节、代码片段、输出和关键理解点。
 - 本地进度：使用浏览器 `localStorage` 保存完成状态、答题统计、语言和主题偏好。
 - UI：支持 light/dark 模式和中文/英文双语。
 - CI/CD：GitHub Actions 执行格式、Clippy、测试、覆盖率门禁、Cloudflare Pages 部署和运行监听。
 
-- Learning path follows The Rust Programming Language: variables, control flow, ownership, borrowing, Result, iterators, traits, and lifetimes.
-- Interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering.
+- Learning path follows 12 chapters from The Rust Programming Language: variables, control flow, data types, ownership, slices, borrowing, structs, collections, error handling, iterators, generics, and concurrency.
+- 30 interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering.
 - Instant feedback with expected answers, explanations, and the next exercise.
 - Mini demos linked to Rust Book chapters.
 - Local progress stored in browser `localStorage`, including language and theme preferences.

@@ -60,7 +60,7 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "four_stages" => "四阶段路线",
             "four_stages_copy" => "每一阶段都锚到 Rust Book 对应章节，先能读懂，再能写对。",
             "learn_title" => "课程路径",
-            "learn_copy" => "从变量到迭代器，每一课都对应 Rust Book 原章节、两道小题和一个可读 demo。",
+            "learn_copy" => "从变量到并发，每一课都对应 Rust Book 原章节、多道小题和一个可读 demo。",
             "difficulty" => "难度",
             "enter_exercise" => "进入练习",
             "book_ref" => "Rust Book",
@@ -119,7 +119,7 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "four_stages" => "Four-stage path",
             "four_stages_copy" => "Every stage maps to a chapter in The Rust Book: read first, then write correctly.",
             "learn_title" => "Learning Path",
-            "learn_copy" => "From variables to iterators, every lesson has a Rust Book chapter, two exercises, and one readable demo.",
+            "learn_copy" => "From variables to concurrency, every lesson has a Rust Book chapter, several exercises, and one readable demo.",
             "difficulty" => "Level",
             "enter_exercise" => "Practice",
             "book_ref" => "Rust Book",
@@ -201,10 +201,16 @@ pub fn lesson_title(lesson: &Lesson, language: Language) -> &'static str {
     match lesson.id {
         "syntax-basics" => "Variables, Mutability, and Expressions",
         "control-flow" => "match, if let, and Patterns",
+        "data-functions" => "Data Types, Functions, and Returns",
         "ownership" => "Ownership, Move, and Clone",
+        "slices" => "Slices and first_word",
         "borrowing" => "Borrowing and Mutable References",
+        "structs-enums" => "Structs, Methods, and Enums",
         "result-option" => "Option, Result, and Error Handling",
+        "collections" => "Collections: Vec, String, and HashMap",
         "iterators-traits" => "Iterators, Traits, and Lifetime Intuition",
+        "generics-traits" => "Generics, Trait Bounds, and Lifetimes",
+        "concurrency" => "Threads, Message Passing, and Shared State",
         _ => lesson.title,
     }
 }
@@ -216,10 +222,16 @@ pub fn lesson_summary(lesson: &Lesson, language: Language) -> &'static str {
     match lesson.id {
         "syntax-basics" => "Understand let, mut, shadowing, and expression return values before syntax feels heavy.",
         "control-flow" => "Rust branches are expressions, and match must cover every possible case.",
+        "data-functions" => "Connect scalar types, compound types, function parameters, and expression return values.",
         "ownership" => "The core Rust gate: each value has one owner, and moved values cannot be reused.",
+        "slices" => "Slices borrow a continuous region of a collection and make string boundaries safer.",
         "borrowing" => "Learn why Rust allows many immutable references or one mutable reference at a time.",
+        "structs-enums" => "Use structs for domain data, impl blocks for behavior, and enums for finite states.",
         "result-option" => "Use types to express absence and recoverable failure instead of null or hidden exceptions.",
+        "collections" => "Use standard collections for real data flow while practicing mutability and ownership.",
         "iterators-traits" => "Move from code that works to code that feels like Rust: iterator chains, trait bounds, and reference lifetimes.",
+        "generics-traits" => "Abstract repeated logic with generics, describe capabilities with trait bounds, and relate references with lifetimes.",
+        "concurrency" => "Use threads, channels, Mutex, and Arc to see how Rust moves concurrency errors to compile time.",
         _ => lesson.summary,
     }
 }
@@ -235,20 +247,38 @@ pub fn lesson_goal(lesson: &Lesson, index: usize, language: Language) -> &'stati
         ("control-flow", 0) => "Know why match must be exhaustive",
         ("control-flow", 1) => "Use if let when only one pattern matters",
         ("control-flow", 2) => "Keep branch return types compatible",
+        ("data-functions", 0) => "Read tuple and array type syntax",
+        ("data-functions", 1) => "Tell statements from expressions",
+        ("data-functions", 2) => "Know that function returns come from the last expression",
         ("ownership", 0) => "Detect when String moves",
         ("ownership", 1) => "Separate Copy from Clone",
         ("ownership", 2) => "Use borrowing to avoid ownership transfer",
+        ("slices", 0) => "Read string slice range syntax",
+        ("slices", 1) => "Know that &str is usually a borrowed view",
+        ("slices", 2) => "Explain why first_word returns a safer slice",
         ("borrowing", 0) => "Read through &T without taking ownership",
         ("borrowing", 1) => "Mutate through &mut T",
         ("borrowing", 2) => "Explain why mutable and immutable borrows cannot overlap",
+        ("structs-enums", 0) => "Use field init shorthand and struct update syntax",
+        ("structs-enums", 1) => "Tell &self, &mut self, and self apart",
+        ("structs-enums", 2) => "Use enums and match for variants",
         ("result-option", 0) => "Read Option<T> and Result<T, E>",
         ("result-option", 1) => "Handle success and failure with match",
         ("result-option", 2) => "Understand that ? returns early on failure",
+        ("collections", 0) => "Create and update Vec<T>",
+        ("collections", 1) => "Update String safely",
+        ("collections", 2) => "Use HashMap::entry for insert-or-update",
         ("iterators-traits", 0) => "Use map, filter, and collect for data flow",
         ("iterators-traits", 1) => "Read impl Trait and trait bounds",
         ("iterators-traits", 2) => {
             "Know that lifetime annotations describe relationships, not extensions"
         }
+        ("generics-traits", 0) => "Read generic function signatures",
+        ("generics-traits", 1) => "Add trait bounds to generic parameters",
+        ("generics-traits", 2) => "Explain the lifetime parameter in longest",
+        ("concurrency", 0) => "Know when thread::spawn needs move",
+        ("concurrency", 1) => "Transfer ownership between threads with channels",
+        ("concurrency", 2) => "Understand Arc<Mutex<T>> for shared mutable state",
         _ => lesson.goals[index],
     }
 }
@@ -260,10 +290,16 @@ pub fn demo_title(lesson: &Lesson, language: Language) -> &'static str {
     match lesson.id {
         "syntax-basics" => "The Rust Book: mutable variable",
         "control-flow" => "The Rust Book: match returns a value",
+        "data-functions" => "The Rust Book: tuple destructuring",
         "ownership" => "The Rust Book: move instead of shallow copy",
+        "slices" => "The Rust Book: string slices",
         "borrowing" => "The Rust Book: borrowing a String",
+        "structs-enums" => "The Rust Book: struct update syntax",
         "result-option" => "The Rust Book: matching on Result",
+        "collections" => "The Rust Book: HashMap entry",
         "iterators-traits" => "The Rust Book: iterator sum",
+        "generics-traits" => "The Rust Book: longest lifetime",
+        "concurrency" => "The Rust Book: move closures into threads",
         _ => lesson.demo.title,
     }
 }
@@ -275,10 +311,16 @@ pub fn demo_takeaway(lesson: &Lesson, language: Language) -> &'static str {
     match lesson.id {
         "syntax-basics" => "Bindings are immutable by default; write mut only when the same binding must change.",
         "control-flow" => "match is exhaustive and each arm can produce the value assigned to a variable.",
+        "data-functions" => "Tuples are fixed-size compound values. Pattern destructuring binds each position at once.",
         "ownership" => "A String owns heap data. Moving it prevents two owners from freeing the same allocation.",
+        "slices" => "A slice does not own data; it borrows a region and ties the returned value to the source.",
         "borrowing" => "Passing &String lets a function read the value while the caller keeps ownership.",
+        "structs-enums" => "Struct update syntax can move non-Copy fields from the old value into the new value.",
         "result-option" => "Result forces success and failure paths into the type system and the control flow.",
+        "collections" => "entry(...).or_insert(...) is the standard insert-or-update pattern for maps.",
         "iterators-traits" => "Iterator adapters are lazy; consuming methods such as sum or collect run the chain.",
+        "generics-traits" => "A lifetime parameter relates returned references to input references; it does not extend storage.",
+        "concurrency" => "move gives the spawned thread ownership of captured values so it cannot outlive borrowed data.",
         _ => lesson.demo.takeaway,
     }
 }
@@ -290,16 +332,34 @@ pub fn exercise_title(exercise: &Exercise, language: Language) -> &'static str {
     match exercise.id {
         "syntax-let-mut" => "Make a variable mutable",
         "syntax-output" => "Read a block expression",
+        "tuple-destructure" => "Destructure a tuple",
+        "function-return" => "Return the last expression",
+        "array-type" => "Array types include length",
         "match-exhaustive" => "Why match needs a fallback",
         "if-let-some" => "Care only about Some",
         "ownership-move" => "Find the invalid use after move",
         "ownership-clone" => "Keep two Strings",
+        "slice-range" => "Take the hello slice",
+        "first-word-return" => "What should first_word return?",
+        "string-literal-slice" => "Type of a string literal",
         "borrowing-mut-ref" => "Mutate through a mutable borrow",
         "borrowing-rule" => "Borrowing rule in one sentence",
+        "struct-update" => "Struct update syntax",
+        "method-self" => "Read-only methods borrow self",
+        "enum-match-option" => "Option is an enum",
         "option-match" => "Handle None safely",
         "result-question-mark" => "What ? really means",
+        "vec-mut-push" => "Vec push needs mutability",
+        "string-update" => "Append a string slice",
+        "hashmap-entry" => "Insert only when the key is absent",
         "iterator-chain" => "Iterator chain result",
         "lifetime-meaning" => "What lifetime annotations mean",
+        "generic-largest" => "largest needs a capability bound",
+        "trait-bound-display" => "Trait bound for printing",
+        "lifetime-longest" => "The lifetime of longest's return",
+        "thread-move" => "Why a thread closure needs move",
+        "channel-send" => "Sending through a channel moves values",
+        "mutex-lock" => "Shared mutable counter",
         _ => exercise.title,
     }
 }
@@ -311,18 +371,36 @@ pub fn exercise_prompt(exercise: &Exercise, language: Language) -> &'static str 
     match exercise.id {
         "syntax-let-mut" => "The code wants to add 1 to score. What fills the blank?",
         "syntax-output" => "What does this code print?",
+        "tuple-destructure" => "Following The Rust Book tuple example, what pattern binds all three values?",
+        "function-return" => "What does this function call print?",
+        "array-type" => "Which type means an array of five i32 values?",
         "match-exhaustive" => "Which statement is correct?",
         "if-let-some" => "Which pattern prints the value only when maybe is Some?",
         "ownership-move" => "Which line fails to compile?",
         "ownership-clone" => {
             "What should fill the blank if both name and alias must remain usable?"
         }
+        "slice-range" => "Following The Rust Book string slice example, what range extracts hello?",
+        "first-word-return" => "Why does The Rust Book change first_word to return &str instead of usize?",
+        "string-literal-slice" => "What is the most accurate type of the string literal \"hello\"?",
         "borrowing-mut-ref" => "Put the steps in an order that compiles and mutates the Vec.",
         "borrowing-rule" => "Which sentence is most accurate?",
+        "struct-update" => "What fills the blank to reuse the remaining fields from user1?",
+        "method-self" => "If a method only reads struct fields and does not take ownership, what does it usually take?",
+        "enum-match-option" => "What match arm extracts the Some value and adds 1?",
         "option-match" => "What branch safely handles None?",
         "result-question-mark" => "What does ? do on Result?",
+        "vec-mut-push" => "What fills the blank if we want to append to a Vec?",
+        "string-update" => "Which method appends `bar` to a String?",
+        "hashmap-entry" => "Following The Rust Book entry pattern, what fills the blank?",
         "iterator-chain" => "What does this code print?",
         "lifetime-meaning" => "What do lifetime annotations actually express?",
+        "generic-largest" => "If largest compares arbitrary T values, what trait ability does T need?",
+        "trait-bound-display" => "If the function prints item with `{}`, which trait bound is needed?",
+        "lifetime-longest" => "What does the signature of longest express?",
+        "thread-move" => "Why does The Rust Book add `move` to the thread closure that prints a vector?",
+        "channel-send" => "After sending a String through `tx.send(val)`, what happens to val?",
+        "mutex-lock" => "Which smart pointer usually wraps Mutex for sharing across threads?",
         _ => exercise.prompt,
     }
 }
@@ -335,9 +413,20 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         ("match-exhaustive", 0) => "match must cover every case; _ catches the rest",
         ("match-exhaustive", 1) => "match only checks values that appeared at runtime",
         ("match-exhaustive", 2) => "_ disables the previous arms",
+        ("array-type", 0) => "[i32; 5]",
+        ("array-type", 1) => "Vec<i32>",
+        ("array-type", 2) => "(i32, 5)",
         ("ownership-move", 0) => "`let name = String::from(\"Rust\");`",
         ("ownership-move", 1) => "`let alias = name;`",
         ("ownership-move", 2) => "`println!(\"{name}\");`",
+        ("first-word-return", 0) => {
+            "&str ties the result to the source borrow, avoiding stale indexes"
+        }
+        ("first-word-return", 1) => "&str copies the first word and is faster",
+        ("first-word-return", 2) => "&str bypasses UTF-8 checks",
+        ("string-literal-slice", 0) => "&str",
+        ("string-literal-slice", 1) => "String",
+        ("string-literal-slice", 2) => "[char; 5]",
         ("borrowing-mut-ref", 0) => "let mut nums = vec![1, 2];",
         ("borrowing-mut-ref", 1) => "let view = &mut nums;",
         ("borrowing-mut-ref", 2) => "view.push(3);",
@@ -347,6 +436,9 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         }
         ("borrowing-rule", 1) => "If a variable is mut, unlimited mutable references are allowed",
         ("borrowing-rule", 2) => "Immutable references automatically clone the underlying data",
+        ("method-self", 0) => "&self",
+        ("method-self", 1) => "&mut self",
+        ("method-self", 2) => "self",
         ("result-question-mark", 0) => {
             "On Ok, unwrap the value; on Err, return Err from the current function"
         }
@@ -355,6 +447,22 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         ("lifetime-meaning", 0) => "The returned reference will not outlive the input references",
         ("lifetime-meaning", 1) => "The function extends the lifetime of left and right",
         ("lifetime-meaning", 2) => "All strings are copied into static memory",
+        ("generic-largest", 0) => "PartialOrd",
+        ("generic-largest", 1) => "Iterator",
+        ("generic-largest", 2) => "Default",
+        ("lifetime-longest", 0) => "The returned reference cannot outlive the shorter of x and y",
+        ("lifetime-longest", 1) => "The returned reference is always static",
+        ("lifetime-longest", 2) => "The function copies the longer string",
+        ("thread-move", 0) => {
+            "Move v into the thread so it cannot reference an expired stack value"
+        }
+        ("thread-move", 1) => "Make the thread run faster",
+        ("thread-move", 2) => "Convert Vec into a static array",
+        ("channel-send", 0) => {
+            "Ownership moves to the receiver, so the sender cannot use val again"
+        }
+        ("channel-send", 1) => "send automatically clones val",
+        ("channel-send", 2) => "val becomes an empty string",
         _ => exercise.options[index],
     }
 }
@@ -366,16 +474,34 @@ pub fn exercise_explanation(exercise: &Exercise, language: Language) -> &'static
     match exercise.id {
         "syntax-let-mut" => "`let` bindings are immutable by default. Use `mut` when the same binding changes.",
         "syntax-output" => "The last line has no semicolon, so `base + 2` is the block's value.",
+        "tuple-destructure" => "A tuple can be destructured with a pattern: `let (x, y, z) = tup;`.",
+        "function-return" => "The function body's final expression has no semicolon, so it becomes the return value.",
+        "array-type" => "Array types are written `[T; N]`; the length N is part of the type.",
         "match-exhaustive" => "Rust requires match to cover all cases; `_` matches everything left.",
         "if-let-some" => "`if let Some(value) = maybe` is for the case where only one pattern matters.",
         "ownership-move" => "`String` is not Copy. Assigning it to alias moves ownership, so name cannot be used.",
         "ownership-clone" => "`clone()` explicitly copies heap data so both Strings own separate allocations.",
+        "slice-range" => "`&s[0..5]` borrows bytes 0 through 4, which spell `hello`.",
+        "first-word-return" => "Returning a slice lets the compiler keep the result tied to the original string borrow.",
+        "string-literal-slice" => "A string literal is stored in the binary, and the variable has type `&str`.",
         "borrowing-mut-ref" => "Create the mutable owner, create the mutable reference, mutate through it, then read nums after the borrow ends.",
         "borrowing-rule" => "The active-reference rule is many readers or one writer.",
+        "struct-update" => "`..user1` takes the remaining fields from user1; non-Copy fields move.",
+        "method-self" => "`&self` is short for `self: &Self`, which fits read-only methods.",
+        "enum-match-option" => "Option<T> is an enum. `Some(n)` matches the variant and binds the inner value.",
         "option-match" => "Option has exactly Some and None, so match must handle both.",
         "result-question-mark" => "`?` is early-return sugar, not exception handling.",
+        "vec-mut-push" => "`push` changes the Vec, so the binding must be `mut`.",
+        "string-update" => "`push_str` appends a string slice without taking ownership of the argument.",
+        "hashmap-entry" => "`or_insert` inserts only when the key is absent and returns a mutable reference to the value.",
         "iterator-chain" => "filter keeps 2 and 4; map multiplies each by 10.",
         "lifetime-meaning" => "Lifetime annotations describe reference relationships; they do not extend actual lifetimes.",
+        "generic-largest" => "Comparing T with `>` or `<` requires a trait bound such as `PartialOrd`.",
+        "trait-bound-display" => "`{}` formatting uses `std::fmt::Display`; `{:?}` uses Debug.",
+        "lifetime-longest" => "`'a` relates the output reference to both input references and enforces the shorter valid lifetime.",
+        "thread-move" => "A spawned thread may outlive the current scope. `move` makes the closure own v.",
+        "channel-send" => "Channels transfer ownership; using val after send would be rejected.",
+        "mutex-lock" => "`Arc<T>` gives thread-safe shared ownership, while `Mutex<T>` provides mutually exclusive access.",
         _ => exercise.explanation,
     }
 }
@@ -387,20 +513,40 @@ pub fn exercise_hint(exercise: &Exercise, language: Language) -> &'static str {
     match exercise.id {
         "syntax-let-mut" => "This changes the same binding with `+=`; it is not shadowing.",
         "syntax-output" => "Look for the missing semicolon after `base + 2`.",
+        "tuple-destructure" => "The left side is a pattern, not a type.",
+        "function-return" => "Expressions have no trailing semicolon; statements do.",
+        "array-type" => "Vec can grow; arrays have a fixed length in the type.",
         "match-exhaustive" => "Ask what happens if n is 100.",
         "if-let-some" => "The pattern must match Some and bind the inner value.",
         "ownership-move" => {
             "The assignment is legal. The error appears when the old owner is used again."
         }
         "ownership-clone" => "This is an explicit deep copy, and Rust makes that cost visible.",
+        "slice-range" => "Rust ranges exclude the right endpoint.",
+        "first-word-return" => "An index is only a number; a slice carries a borrow relationship.",
+        "string-literal-slice" => "This is why string literals are immutable.",
         "borrowing-mut-ref" => "`nums` must be declared mut before you create `&mut nums`.",
         "borrowing-rule" => "The key phrase is active references at the same time.",
+        "struct-update" => "The syntax begins with two dots.",
+        "method-self" => "area does not mutate or consume the Rectangle.",
+        "enum-match-option" => "This is like if let, but match must also cover None.",
         "option-match" => "Rust uses an enum variant, not null, to express absence.",
         "result-question-mark" => {
             "The current function's return type must be able to carry the error."
         }
+        "vec-mut-push" => "Appending mutates the collection.",
+        "string-update" => "push appends one char; push_str appends &str.",
+        "hashmap-entry" => "The word-frequency example uses `entry(...).or_insert(0)`.",
         "iterator-chain" => "Process the chain from top to bottom.",
         "lifetime-meaning" => "`'a` is a constraint, not an allocation strategy.",
+        "generic-largest" => "Generics require you to state the capabilities you use.",
+        "trait-bound-display" => "Display is for user-facing `{}` formatting.",
+        "lifetime-longest" => {
+            "A lifetime parameter describes a relationship, not ownership or allocation."
+        }
+        "thread-move" => "The concurrency chapter is still ownership in action.",
+        "channel-send" => "Message passing hands data from one thread to another.",
+        "mutex-lock" => "Rc<T> is not safe to share across threads; the book uses Arc<Mutex<T>>.",
         _ => exercise.hint,
     }
 }
