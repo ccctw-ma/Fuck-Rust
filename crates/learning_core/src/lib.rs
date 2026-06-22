@@ -135,9 +135,9 @@ mod tests {
             .find(|item| item.lesson.id == "borrowing")
             .expect("borrowing lesson progress");
 
-        assert_eq!(borrowing.total, 2);
+        assert_eq!(borrowing.total, 4);
         assert_eq!(borrowing.completed, 1);
         assert!(!borrowing.locked);
-        assert_eq!(borrowing.rate(), 0.5);
+        assert_eq!(borrowing.rate(), 0.25);
     }
 }

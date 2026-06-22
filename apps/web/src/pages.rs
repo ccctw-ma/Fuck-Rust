@@ -11,8 +11,9 @@ use crate::app::{ProgressHandle, Route};
 use crate::components::{DemoBlock, MetricCard, StageCard};
 use crate::i18n::{
     answer_summary, card_fix, card_summary, card_title, demo_takeaway, demo_title,
-    exercise_explanation, exercise_hint, exercise_kind_label, exercise_option, exercise_prompt,
-    exercise_title, lesson_goal, lesson_summary, lesson_title, stage_label, t, Language,
+    exercise_explanation, exercise_hint, exercise_kind_label, exercise_level_label,
+    exercise_option, exercise_prompt, exercise_title, lesson_goal, lesson_summary, lesson_title,
+    stage_label, t, Language,
 };
 
 #[derive(Properties, PartialEq)]
@@ -202,7 +203,10 @@ pub fn exercise_page(props: &ExercisePageProps) -> Html {
     html! {
         <section class="exercise-panel">
             <article>
-                <span class="eyebrow">{ exercise_kind_label(exercise.kind, language) }</span>
+                <div class="exercise-meta">
+                    <span class="eyebrow">{ exercise_kind_label(exercise.kind, language) }</span>
+                    <span class="eyebrow level-pill">{ exercise_level_label(exercise, language) }</span>
+                </div>
                 <h1 class="exercise-title">{ exercise_title(exercise, language) }</h1>
                 <p class="exercise-prompt">{ exercise_prompt(exercise, language) }</p>
                 {

@@ -150,6 +150,14 @@ button {
     conic-gradient(from 10deg, var(--mint), var(--amber), var(--rust-brown), var(--mint));
   box-shadow: 0 0 28px rgba(244, 102, 35, 0.24);
   font-weight: 950;
+  overflow: hidden;
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .brand-mark::before {
@@ -392,11 +400,12 @@ button {
   max-width: 900px;
   margin: 24px 0 18px;
   font-size: clamp(44px, 8vw, 104px);
-  line-height: 0.9;
+  line-height: 0.92;
   letter-spacing: -0.1em;
 }
 
 .hero-title span {
+  display: block;
   color: var(--mint);
 }
 
@@ -579,8 +588,9 @@ button {
 }
 
 .code-block {
+  position: relative;
   overflow: auto;
-  padding: 16px;
+  padding: 42px 16px 16px 48px;
   border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
   border-radius: 22px;
   color: color-mix(in srgb, var(--amber) 75%, var(--text));
@@ -589,6 +599,46 @@ button {
     rgba(12, 8, 6, 0.78);
   line-height: 1.7;
   white-space: pre-wrap;
+}
+
+.code-block::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 30px;
+  padding-left: 54px;
+  border-bottom: 1px solid color-mix(in srgb, var(--amber) 16%, transparent);
+  color: var(--faint);
+  background: rgba(255, 255, 255, 0.035);
+  content: "main.rs";
+  font-size: 11px;
+  line-height: 30px;
+}
+
+.code-block::after {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow:
+    14px 0 0 var(--amber),
+    28px 0 0 var(--green);
+  content: "";
+}
+
+.exercise-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.level-pill {
+  color: var(--amber);
 }
 
 .exercise-panel {
@@ -836,8 +886,17 @@ button {
   }
 
   .hero-title {
-    font-size: 48px;
-    letter-spacing: -0.08em;
+    font-size: clamp(40px, 12vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.065em;
+  }
+
+  .hero-card::after {
+    right: -120px;
+    bottom: -84px;
+    width: 290px;
+    height: 290px;
+    opacity: 0.48;
   }
 
   .exercise-panel,

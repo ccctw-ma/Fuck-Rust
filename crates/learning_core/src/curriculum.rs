@@ -179,7 +179,7 @@ pub const LESSONS: &[Lesson] = &[
             "区分 Copy 和 Clone",
             "知道借用能避免转移所有权",
         ],
-        exercise_ids: &["ownership-move", "ownership-clone"],
+        exercise_ids: &["ownership-move", "ownership-clone", "ownership-copy-trap"],
         book_url: "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
         demo: Demo {
             title: "Rust Book：move 而不是浅拷贝",
@@ -221,7 +221,12 @@ pub const LESSONS: &[Lesson] = &[
             "用 &mut T 修改值",
             "解释可变引用和不可变引用不能同时活跃",
         ],
-        exercise_ids: &["borrowing-mut-ref", "borrowing-rule"],
+        exercise_ids: &[
+            "borrowing-mut-ref",
+            "borrowing-rule",
+            "borrow-scope-release",
+            "dangling-reference",
+        ],
         book_url: "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
         demo: Demo {
             title: "Rust Book：借用 String",
@@ -305,7 +310,12 @@ pub const LESSONS: &[Lesson] = &[
             "读懂 impl Trait 和 trait bound",
             "知道生命周期标注描述引用关系，不延长生命",
         ],
-        exercise_ids: &["iterator-chain", "lifetime-meaning"],
+        exercise_ids: &[
+            "iterator-chain",
+            "lifetime-meaning",
+            "iter-vs-into-iter",
+            "collect-type",
+        ],
         book_url: "https://doc.rust-lang.org/book/ch13-02-iterators.html",
         demo: Demo {
             title: "Rust Book：消费迭代器",
@@ -326,7 +336,13 @@ pub const LESSONS: &[Lesson] = &[
             "给泛型参数加 trait bound",
             "解释 longest 中生命周期参数的含义",
         ],
-        exercise_ids: &["generic-largest", "trait-bound-display", "lifetime-longest"],
+        exercise_ids: &[
+            "generic-largest",
+            "trait-bound-display",
+            "lifetime-longest",
+            "where-clause",
+            "static-lifetime-myth",
+        ],
         book_url: "https://doc.rust-lang.org/book/ch10-00-generics.html",
         demo: Demo {
             title: "Rust Book：longest 生命周期",
@@ -347,7 +363,13 @@ pub const LESSONS: &[Lesson] = &[
             "用 channel 在线程间传递所有权",
             "理解 Arc<Mutex<T>> 的共享可变状态模式",
         ],
-        exercise_ids: &["thread-move", "channel-send", "mutex-lock"],
+        exercise_ids: &[
+            "thread-move",
+            "channel-send",
+            "mutex-lock",
+            "arc-clone",
+            "mutex-guard-drop",
+        ],
         book_url: "https://doc.rust-lang.org/book/ch16-00-concurrency.html",
         demo: Demo {
             title: "Rust Book：move 闭包线程",

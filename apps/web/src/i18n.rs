@@ -194,6 +194,17 @@ pub fn exercise_kind_label(kind: learning_core::ExerciseKind, language: Language
     }
 }
 
+pub fn exercise_level_label(exercise: &Exercise, language: Language) -> &'static str {
+    match (exercise.level(), language) {
+        (1, Language::Zh) => "基础",
+        (2, Language::Zh) => "进阶",
+        (_, Language::Zh) => "挑战",
+        (1, Language::En) => "Basic",
+        (2, Language::En) => "Practice",
+        (_, Language::En) => "Challenge",
+    }
+}
+
 pub fn lesson_title(lesson: &Lesson, language: Language) -> &'static str {
     if language == Language::Zh {
         return lesson.title;
@@ -339,11 +350,14 @@ pub fn exercise_title(exercise: &Exercise, language: Language) -> &'static str {
         "if-let-some" => "Care only about Some",
         "ownership-move" => "Find the invalid use after move",
         "ownership-clone" => "Keep two Strings",
+        "ownership-copy-trap" => "Copy or move?",
         "slice-range" => "Take the hello slice",
         "first-word-return" => "What should first_word return?",
         "string-literal-slice" => "Type of a string literal",
         "borrowing-mut-ref" => "Mutate through a mutable borrow",
         "borrowing-rule" => "Borrowing rule in one sentence",
+        "borrow-scope-release" => "Shorten a borrow's active scope",
+        "dangling-reference" => "Why dangling references are rejected",
         "struct-update" => "Struct update syntax",
         "method-self" => "Read-only methods borrow self",
         "enum-match-option" => "Option is an enum",
@@ -354,12 +368,18 @@ pub fn exercise_title(exercise: &Exercise, language: Language) -> &'static str {
         "hashmap-entry" => "Insert only when the key is absent",
         "iterator-chain" => "Iterator chain result",
         "lifetime-meaning" => "What lifetime annotations mean",
+        "iter-vs-into-iter" => "iter vs into_iter ownership",
+        "collect-type" => "collect needs a target type",
         "generic-largest" => "largest needs a capability bound",
         "trait-bound-display" => "Trait bound for printing",
         "lifetime-longest" => "The lifetime of longest's return",
+        "where-clause" => "Use a where clause",
+        "static-lifetime-myth" => "'static is not magic",
         "thread-move" => "Why a thread closure needs move",
         "channel-send" => "Sending through a channel moves values",
         "mutex-lock" => "Shared mutable counter",
+        "arc-clone" => "Arc::clone clones the pointer",
+        "mutex-guard-drop" => "When MutexGuard releases the lock",
         _ => exercise.title,
     }
 }
@@ -380,11 +400,14 @@ pub fn exercise_prompt(exercise: &Exercise, language: Language) -> &'static str 
         "ownership-clone" => {
             "What should fill the blank if both name and alias must remain usable?"
         }
+        "ownership-copy-trap" => "After which assignment can the original variable still be used?",
         "slice-range" => "Following The Rust Book string slice example, what range extracts hello?",
         "first-word-return" => "Why does The Rust Book change first_word to return &str instead of usize?",
         "string-literal-slice" => "What is the most accurate type of the string literal \"hello\"?",
         "borrowing-mut-ref" => "Put the steps in an order that compiles and mutates the Vec.",
         "borrowing-rule" => "Which sentence is most accurate?",
+        "borrow-scope-release" => "Put the steps in an order that reads and then mutates a String.",
+        "dangling-reference" => "Why does this function fail to compile?",
         "struct-update" => "What fills the blank to reuse the remaining fields from user1?",
         "method-self" => "If a method only reads struct fields and does not take ownership, what does it usually take?",
         "enum-match-option" => "What match arm extracts the Some value and adds 1?",
@@ -395,12 +418,18 @@ pub fn exercise_prompt(exercise: &Exercise, language: Language) -> &'static str 
         "hashmap-entry" => "Following The Rust Book entry pattern, what fills the blank?",
         "iterator-chain" => "What does this code print?",
         "lifetime-meaning" => "What do lifetime annotations actually express?",
+        "iter-vs-into-iter" => "After calling `into_iter()` on a `Vec<String>`, what happens to the original vector?",
+        "collect-type" => "What fills the blank to collect into `Vec<i32>`?",
         "generic-largest" => "If largest compares arbitrary T values, what trait ability does T need?",
         "trait-bound-display" => "If the function prints item with `{}`, which trait bound is needed?",
         "lifetime-longest" => "What does the signature of longest express?",
+        "where-clause" => "What trait fills the where clause if the function prints item with `{}`?",
+        "static-lifetime-myth" => "What does `&'static str` most accurately mean?",
         "thread-move" => "Why does The Rust Book add `move` to the thread closure that prints a vector?",
         "channel-send" => "After sending a String through `tx.send(val)`, what happens to val?",
         "mutex-lock" => "Which smart pointer usually wraps Mutex for sharing across threads?",
+        "arc-clone" => "Why do Rust examples often write `Arc::clone(&counter)` inside a thread loop?",
+        "mutex-guard-drop" => "When does the guard returned by `counter.lock().unwrap()` release the lock?",
         _ => exercise.prompt,
     }
 }
@@ -419,6 +448,9 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         ("ownership-move", 0) => "`let name = String::from(\"Rust\");`",
         ("ownership-move", 1) => "`let alias = name;`",
         ("ownership-move", 2) => "`println!(\"{name}\");`",
+        ("ownership-copy-trap", 0) => "`a` is still usable because i32 implements Copy",
+        ("ownership-copy-trap", 1) => "`s1` is still usable because String automatically copies",
+        ("ownership-copy-trap", 2) => "Neither original variable can be used",
         ("first-word-return", 0) => {
             "&str ties the result to the source borrow, avoiding stale indexes"
         }
@@ -436,6 +468,15 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         }
         ("borrowing-rule", 1) => "If a variable is mut, unlimited mutable references are allowed",
         ("borrowing-rule", 2) => "Immutable references automatically clone the underlying data",
+        ("borrow-scope-release", 0) => "let mut s = String::from(\"hello\");",
+        ("borrow-scope-release", 1) => "let len = s.len();",
+        ("borrow-scope-release", 2) => "println!(\"{len}\");",
+        ("borrow-scope-release", 3) => "s.push_str(\" world\");",
+        ("dangling-reference", 0) => {
+            "s is dropped when the function ends, so the returned reference would dangle"
+        }
+        ("dangling-reference", 1) => "String cannot be referenced",
+        ("dangling-reference", 2) => "The return type must be &'static String",
         ("method-self", 0) => "&self",
         ("method-self", 1) => "&mut self",
         ("method-self", 2) => "self",
@@ -447,12 +488,18 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         ("lifetime-meaning", 0) => "The returned reference will not outlive the input references",
         ("lifetime-meaning", 1) => "The function extends the lifetime of left and right",
         ("lifetime-meaning", 2) => "All strings are copied into static memory",
+        ("iter-vs-into-iter", 0) => "names is consumed and cannot be used again",
+        ("iter-vs-into-iter", 1) => "names is still usable because it was only borrowed",
+        ("iter-vs-into-iter", 2) => "into_iter returns indexes",
         ("generic-largest", 0) => "PartialOrd",
         ("generic-largest", 1) => "Iterator",
         ("generic-largest", 2) => "Default",
         ("lifetime-longest", 0) => "The returned reference cannot outlive the shorter of x and y",
         ("lifetime-longest", 1) => "The returned reference is always static",
         ("lifetime-longest", 2) => "The function copies the longer string",
+        ("static-lifetime-myth", 0) => "The referenced data is valid for the entire program",
+        ("static-lifetime-myth", 1) => "The variable binding cannot be moved",
+        ("static-lifetime-myth", 2) => "The string is allocated on every call",
         ("thread-move", 0) => {
             "Move v into the thread so it cannot reference an expired stack value"
         }
@@ -461,6 +508,12 @@ pub fn exercise_option(exercise: &Exercise, index: usize, language: Language) ->
         ("channel-send", 0) => {
             "Ownership moves to the receiver, so the sender cannot use val again"
         }
+        ("arc-clone", 0) => "Increase the reference count so many threads share the same Mutex",
+        ("arc-clone", 1) => "Deep-copy the number inside the Mutex",
+        ("arc-clone", 2) => "Make the Mutex immutable",
+        ("mutex-guard-drop", 0) => "The guard releases the lock when it leaves scope",
+        ("mutex-guard-drop", 1) => "The lock is released when println! is called",
+        ("mutex-guard-drop", 2) => "The lock is never released before the thread ends",
         ("channel-send", 1) => "send automatically clones val",
         ("channel-send", 2) => "val becomes an empty string",
         _ => exercise.options[index],
@@ -481,11 +534,14 @@ pub fn exercise_explanation(exercise: &Exercise, language: Language) -> &'static
         "if-let-some" => "`if let Some(value) = maybe` is for the case where only one pattern matters.",
         "ownership-move" => "`String` is not Copy. Assigning it to alias moves ownership, so name cannot be used.",
         "ownership-clone" => "`clone()` explicitly copies heap data so both Strings own separate allocations.",
+        "ownership-copy-trap" => "Simple scalar values such as i32 implement Copy. String owns heap memory, so assignment moves it.",
         "slice-range" => "`&s[0..5]` borrows bytes 0 through 4, which spell `hello`.",
         "first-word-return" => "Returning a slice lets the compiler keep the result tied to the original string borrow.",
         "string-literal-slice" => "A string literal is stored in the binary, and the variable has type `&str`.",
         "borrowing-mut-ref" => "Create the mutable owner, create the mutable reference, mutate through it, then read nums after the borrow ends.",
         "borrowing-rule" => "The active-reference rule is many readers or one writer.",
+        "borrow-scope-release" => "After the last use of the immutable read, the borrow ends and mutation can happen.",
+        "dangling-reference" => "A local value is dropped at function end. Returning a reference to it would create a dangling reference.",
         "struct-update" => "`..user1` takes the remaining fields from user1; non-Copy fields move.",
         "method-self" => "`&self` is short for `self: &Self`, which fits read-only methods.",
         "enum-match-option" => "Option<T> is an enum. `Some(n)` matches the variant and binds the inner value.",
@@ -496,12 +552,18 @@ pub fn exercise_explanation(exercise: &Exercise, language: Language) -> &'static
         "hashmap-entry" => "`or_insert` inserts only when the key is absent and returns a mutable reference to the value.",
         "iterator-chain" => "filter keeps 2 and 4; map multiplies each by 10.",
         "lifetime-meaning" => "Lifetime annotations describe reference relationships; they do not extend actual lifetimes.",
+        "iter-vs-into-iter" => "`into_iter()` consumes the collection and yields owned values. Use `iter()` when you only want borrowed values.",
+        "collect-type" => "`collect` can build many collection types, so the target type must be inferred or written explicitly.",
         "generic-largest" => "Comparing T with `>` or `<` requires a trait bound such as `PartialOrd`.",
         "trait-bound-display" => "`{}` formatting uses `std::fmt::Display`; `{:?}` uses Debug.",
         "lifetime-longest" => "`'a` relates the output reference to both input references and enforces the shorter valid lifetime.",
+        "where-clause" => "A where clause moves trait bounds out of the angle brackets and keeps complex signatures readable.",
+        "static-lifetime-myth" => "`'static` means the referenced data can live for the whole program; it does not freeze the binding.",
         "thread-move" => "A spawned thread may outlive the current scope. `move` makes the closure own v.",
         "channel-send" => "Channels transfer ownership; using val after send would be rejected.",
         "mutex-lock" => "`Arc<T>` gives thread-safe shared ownership, while `Mutex<T>` provides mutually exclusive access.",
+        "arc-clone" => "`Arc::clone` increases the atomic reference count so threads share the same allocation.",
+        "mutex-guard-drop" => "MutexGuard releases the lock when it is dropped at the end of its scope.",
         _ => exercise.explanation,
     }
 }
@@ -522,11 +584,18 @@ pub fn exercise_hint(exercise: &Exercise, language: Language) -> &'static str {
             "The assignment is legal. The error appears when the old owner is used again."
         }
         "ownership-clone" => "This is an explicit deep copy, and Rust makes that cost visible.",
+        "ownership-copy-trap" => {
+            "Ask whether the type owns heap resources or is a simple Copy scalar."
+        }
         "slice-range" => "Rust ranges exclude the right endpoint.",
         "first-word-return" => "An index is only a number; a slice carries a borrow relationship.",
         "string-literal-slice" => "This is why string literals are immutable.",
         "borrowing-mut-ref" => "`nums` must be declared mut before you create `&mut nums`.",
         "borrowing-rule" => "The key phrase is active references at the same time.",
+        "borrow-scope-release" => {
+            "Look for the last use of `len`; after that, the immutable borrow is done."
+        }
+        "dangling-reference" => "Returning ownership avoids the invalid reference entirely.",
         "struct-update" => "The syntax begins with two dots.",
         "method-self" => "area does not mutate or consume the Rectangle.",
         "enum-match-option" => "This is like if let, but match must also cover None.",
@@ -539,14 +608,22 @@ pub fn exercise_hint(exercise: &Exercise, language: Language) -> &'static str {
         "hashmap-entry" => "The word-frequency example uses `entry(...).or_insert(0)`.",
         "iterator-chain" => "Process the chain from top to bottom.",
         "lifetime-meaning" => "`'a` is a constraint, not an allocation strategy.",
+        "iter-vs-into-iter" => "The name `into` usually means ownership conversion.",
+        "collect-type" => "The turbofish form is `collect::<Vec<i32>>()`.",
         "generic-largest" => "Generics require you to state the capabilities you use.",
         "trait-bound-display" => "Display is for user-facing `{}` formatting.",
         "lifetime-longest" => {
             "A lifetime parameter describes a relationship, not ownership or allocation."
         }
+        "where-clause" => "Same Display requirement, different syntax location.",
+        "static-lifetime-myth" => {
+            "String literals are the common beginner example of `&'static str`."
+        }
         "thread-move" => "The concurrency chapter is still ownership in action.",
         "channel-send" => "Message passing hands data from one thread to another.",
         "mutex-lock" => "Rc<T> is not safe to share across threads; the book uses Arc<Mutex<T>>.",
+        "arc-clone" => "Arc is atomic reference counting.",
+        "mutex-guard-drop" => "RAII means cleanup happens when the guard leaves scope.",
         _ => exercise.hint,
     }
 }

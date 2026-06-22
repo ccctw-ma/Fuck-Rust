@@ -80,6 +80,34 @@ impl Exercise {
             explanation: self.explanation,
         }
     }
+
+    pub fn level(&self) -> u8 {
+        match self.id {
+            "borrowing-mut-ref"
+            | "borrowing-rule"
+            | "ownership-copy-trap"
+            | "borrow-scope-release"
+            | "first-word-return"
+            | "struct-update"
+            | "hashmap-entry"
+            | "iterator-chain"
+            | "generic-largest"
+            | "trait-bound-display"
+            | "thread-move"
+            | "channel-send" => 2,
+            "dangling-reference"
+            | "lifetime-meaning"
+            | "iter-vs-into-iter"
+            | "collect-type"
+            | "lifetime-longest"
+            | "where-clause"
+            | "static-lifetime-myth"
+            | "mutex-lock"
+            | "arc-clone"
+            | "mutex-guard-drop" => 3,
+            _ => 1,
+        }
+    }
 }
 
 impl Answer {
@@ -240,6 +268,18 @@ pub const EXERCISES: &[Exercise] = &[
         hint: "这是一个有成本的深拷贝，Rust 要求你显式写出来。",
     },
     Exercise {
+        id: "ownership-copy-trap",
+        lesson_id: "ownership",
+        title: "Copy 和 move 的分界",
+        kind: ExerciseKind::SingleChoice,
+        prompt: "下面哪种赋值后，原变量仍然可以继续使用？",
+        code: "let a = 3;\nlet b = a;\n\nlet s1 = String::from(\"hi\");\nlet s2 = s1;",
+        options: &["`a` 仍可用，因为 i32 实现 Copy", "`s1` 仍可用，因为 String 自动 Copy", "两者都不可用"],
+        answer: Answer::Choice(0),
+        explanation: "整数等简单标量实现 Copy，赋值会复制值；String 管理堆内存，赋值会 move 所有权。",
+        hint: "Rust Book 用 Copy trait 区分栈上简单值和持有资源的类型。",
+    },
+    Exercise {
         id: "slice-range",
         lesson_id: "slices",
         title: "取出 hello 切片",
@@ -316,6 +356,44 @@ pub const EXERCISES: &[Exercise] = &[
         answer: Answer::Choice(0),
         explanation: "借用规则限制的是活跃引用组合：多个读，或一个写。",
         hint: "关键是“同一时间”和“活跃引用”。",
+    },
+    Exercise {
+        id: "borrow-scope-release",
+        lesson_id: "borrowing",
+        title: "缩短不可变借用作用域",
+        kind: ExerciseKind::OrderSteps,
+        prompt: "把步骤排成能先读取再修改 String 的顺序。",
+        code: "",
+        options: &[
+            "let mut s = String::from(\"hello\");",
+            "let len = s.len();",
+            "println!(\"{len}\");",
+            "s.push_str(\" world\");",
+        ],
+        answer: Answer::Ordered(&[
+            "let mut s = String::from(\"hello\");",
+            "let len = s.len();",
+            "println!(\"{len}\");",
+            "s.push_str(\" world\");",
+        ]),
+        explanation: "不可变读取在 `println!` 后不再使用，借用结束，之后可以创建可变借用修改 `s`。",
+        hint: "NLL 会根据最后一次使用位置结束借用，而不是机械等到作用域末尾。",
+    },
+    Exercise {
+        id: "dangling-reference",
+        lesson_id: "borrowing",
+        title: "为什么不能返回悬垂引用",
+        kind: ExerciseKind::SingleChoice,
+        prompt: "下面函数为什么不能通过编译？",
+        code: "fn dangle() -> &String {\n    let s = String::from(\"hello\");\n    &s\n}",
+        options: &[
+            "s 在函数结束时被释放，返回引用会悬垂",
+            "String 不能被引用",
+            "返回值必须写成 &'static String",
+        ],
+        answer: Answer::Choice(0),
+        explanation: "局部变量 `s` 在函数结束时释放，返回 `&s` 会让调用方拿到无效引用，Rust 直接拒绝。",
+        hint: "正确做法通常是返回拥有所有权的 `String`。",
     },
     Exercise {
         id: "struct-update",
@@ -446,6 +524,30 @@ pub const EXERCISES: &[Exercise] = &[
         hint: "`'a` 是约束，不是内存分配策略。",
     },
     Exercise {
+        id: "iter-vs-into-iter",
+        lesson_id: "iterators-traits",
+        title: "iter 和 into_iter 的所有权差异",
+        kind: ExerciseKind::SingleChoice,
+        prompt: "对 `Vec<String>` 调用 `into_iter()` 后，原 vector 会怎样？",
+        code: "let names = vec![String::from(\"Ferris\")];\nlet owned = names.into_iter();",
+        options: &["names 被消费，不能再使用", "names 仍可用，因为只是借用", "into_iter 会返回索引"],
+        answer: Answer::Choice(0),
+        explanation: "`into_iter()` 消费集合并产生拥有所有权的元素；`iter()` 才是借用迭代。",
+        hint: "方法名里的 into 往往暗示所有权转换。",
+    },
+    Exercise {
+        id: "collect-type",
+        lesson_id: "iterators-traits",
+        title: "collect 需要目标类型",
+        kind: ExerciseKind::FillBlank,
+        prompt: "把迭代器收集成 Vec<i32>，空白处应填什么？",
+        code: "let doubled = vec![1, 2, 3].into_iter().map(|n| n * 2).collect::<____>();",
+        options: &[],
+        answer: Answer::Text("Vec<i32>"),
+        explanation: "`collect` 很泛型，通常需要 turbofish 或变量类型告诉编译器目标集合类型。",
+        hint: "也可以写 `let doubled: Vec<i32> = ...collect();`。",
+    },
+    Exercise {
         id: "generic-largest",
         lesson_id: "generics-traits",
         title: "泛型 largest 需要能力约束",
@@ -484,6 +586,34 @@ pub const EXERCISES: &[Exercise] = &[
         answer: Answer::Choice(0),
         explanation: "`'a` 把返回引用和两个输入引用关联起来，编译器会按较短有效期约束调用。",
         hint: "生命周期参数描述关系，不改变所有权和分配。",
+    },
+    Exercise {
+        id: "where-clause",
+        lesson_id: "generics-traits",
+        title: "where 子句让复杂约束更清晰",
+        kind: ExerciseKind::FillBlank,
+        prompt: "把泛型约束写到 where 子句中，空白处应填什么 trait？",
+        code: "fn notify<T>(item: T)\nwhere\n    T: ____,\n{\n    println!(\"{}\", item);\n}",
+        options: &[],
+        answer: Answer::Text("Display"),
+        explanation: "where 子句适合较复杂的泛型约束；这里 `{}` 仍然要求 T 实现 Display。",
+        hint: "这题和 trait bound display 是同一能力，只是换成 where 写法。",
+    },
+    Exercise {
+        id: "static-lifetime-myth",
+        lesson_id: "generics-traits",
+        title: "'static 不等于永远运行",
+        kind: ExerciseKind::SingleChoice,
+        prompt: "`&'static str` 最准确表示什么？",
+        code: "let s: &'static str = \"I live in the binary\";",
+        options: &[
+            "引用的数据在整个程序运行期间都有效",
+            "变量 s 不能被移动",
+            "字符串会在每次调用时重新分配",
+        ],
+        answer: Answer::Choice(0),
+        explanation: "`'static` 描述引用指向的数据可在整个程序期间有效，常见于字符串字面量。",
+        hint: "它是生命周期约束，不是变量绑定位置。",
     },
     Exercise {
         id: "thread-move",
@@ -528,6 +658,34 @@ pub const EXERCISES: &[Exercise] = &[
         answer: Answer::Text("Arc::new"),
         explanation: "`Arc<T>` 提供线程安全的引用计数所有权，`Mutex<T>` 提供内部可变性和互斥访问。",
         hint: "Rc<T> 不能跨线程安全共享；并发章节用 Arc<Mutex<T>>。",
+    },
+    Exercise {
+        id: "arc-clone",
+        lesson_id: "concurrency",
+        title: "Arc::clone 克隆的是指针",
+        kind: ExerciseKind::SingleChoice,
+        prompt: "为什么在线程循环里常写 `let counter = Arc::clone(&counter);`？",
+        code: "let counter = Arc::new(Mutex::new(0));\nlet worker_counter = Arc::clone(&counter);",
+        options: &[
+            "增加引用计数，让多个线程共享同一个 Mutex",
+            "深拷贝 Mutex 里的数字",
+            "把 Mutex 变成不可变",
+        ],
+        answer: Answer::Choice(0),
+        explanation: "`Arc::clone` 只增加引用计数，不复制内部数据；多个 Arc 指向同一个 Mutex。",
+        hint: "Arc 是 atomic reference counting。",
+    },
+    Exercise {
+        id: "mutex-guard-drop",
+        lesson_id: "concurrency",
+        title: "MutexGuard 何时释放锁",
+        kind: ExerciseKind::SingleChoice,
+        prompt: "调用 `counter.lock().unwrap()` 得到的 guard 什么时候释放锁？",
+        code: "let mut num = counter.lock().unwrap();\n*num += 1;",
+        options: &["guard 离开作用域时自动释放", "调用 println! 时释放", "线程结束前永不释放"],
+        answer: Answer::Choice(0),
+        explanation: "MutexGuard 实现 Drop，离开作用域时自动释放锁，这是 Rust RAII 模式的一部分。",
+        hint: "想想文件句柄、堆内存和锁在 Rust 中如何自动清理。",
     },
 ];
 
