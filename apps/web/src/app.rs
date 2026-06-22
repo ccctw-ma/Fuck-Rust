@@ -25,8 +25,9 @@ impl Theme {
 
     pub fn from_code(code: &str) -> Self {
         match code {
+            "dark" => Theme::Dark,
             "light" => Theme::Light,
-            _ => Theme::Dark,
+            _ => Theme::Light,
         }
     }
 

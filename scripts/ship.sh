@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 export PATH="$HOME/.cargo/bin:$PATH"
 
 MESSAGE="${1:-chore: iterate rust learning site}"
-BRANCH="$(git branch --show-current)"
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 if [[ -z "$BRANCH" ]]; then
   echo "Cannot ship from a detached HEAD."
@@ -50,7 +50,7 @@ fi
 
 git push origin "$BRANCH"
 
-if command -v gh >/dev/null 2>&1; then
+if command -v gh >/dev/null 2>&1 && gh run --help >/dev/null 2>&1; then
   echo "Waiting for the newest GitHub Actions run on $BRANCH..."
   sleep 8
   RUN_ID="$(gh run list --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId')"

@@ -59,12 +59,12 @@ pub fn load_theme() -> Theme {
 
     LocalStorage::get::<String>(THEME_KEY)
         .map(|value| Theme::from_code(&value))
-        .unwrap_or(Theme::Dark)
+        .unwrap_or(Theme::Light)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_theme() -> Theme {
-    Theme::Dark
+    Theme::Light
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn native_preferences_use_defaults() {
         assert_eq!(load_language(), Language::Zh);
-        assert_eq!(load_theme(), Theme::Dark);
+        assert_eq!(load_theme(), Theme::Light);
     }
 
     #[test]

@@ -25,3 +25,12 @@ fuck-rust.png
 
 .env
 .wrangler-home
+node_modules/
+playwright-report/
+test-results/
+# Added by CJADK
+.cjadk/
+# Added by CJADK
+log/app.log
+# Added by CJADK
+.coco/

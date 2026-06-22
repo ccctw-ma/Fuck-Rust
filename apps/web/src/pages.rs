@@ -12,8 +12,8 @@ use crate::components::{DemoBlock, MetricCard, StageCard};
 use crate::i18n::{
     answer_summary, card_fix, card_summary, card_title, demo_takeaway, demo_title,
     exercise_explanation, exercise_hint, exercise_kind_label, exercise_level_label,
-    exercise_option, exercise_prompt, exercise_title, lesson_goal, lesson_summary, lesson_title,
-    stage_label, t, Language,
+    exercise_option, exercise_prompt, exercise_title, lesson_goal, lesson_guide, lesson_summary,
+    lesson_title, stage_label, t, Language,
 };
 
 #[derive(Properties, PartialEq)]
@@ -389,6 +389,9 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
             output_label={t(language, "demo_output")}
             book_url={lesson.book_url}
             book_label={t(language, "book_ref")}
+            guide_title={t(language, "quick_guide")}
+            goals_title={t(language, "learning_goals")}
+            guide={lesson_guide(lesson, language).to_vec()}
             goals={lesson.goals.iter().enumerate().map(|(index, _)| lesson_goal(lesson, index, language)).collect::<Vec<_>>()}
         />
     }

@@ -76,6 +76,8 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "empty_order" => "还没有选择步骤",
             "reset_order" => "重排",
             "demo_output" => "输出",
+            "quick_guide" => "先学这个",
+            "learning_goals" => "掌握目标",
             "cards_title" => "知识卡片",
             "cards_copy" => "把最容易卡住的概念拆成错误示例和修正方式，做错题时回来对照。",
             "completion_rate" => "完成率",
@@ -135,6 +137,8 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "empty_order" => "No step selected yet",
             "reset_order" => "Reset",
             "demo_output" => "Output",
+            "quick_guide" => "Learn first",
+            "learning_goals" => "Goals",
             "cards_title" => "Knowledge Cards",
             "cards_copy" => "The concepts that usually block learners, shown as wrong code and a concrete fix.",
             "completion_rate" => "Completion",
@@ -244,6 +248,137 @@ pub fn lesson_summary(lesson: &Lesson, language: Language) -> &'static str {
         "generics-traits" => "Abstract repeated logic with generics, describe capabilities with trait bounds, and relate references with lifetimes.",
         "concurrency" => "Use threads, channels, Mutex, and Arc to see how Rust moves concurrency errors to compile time.",
         _ => lesson.summary,
+    }
+}
+
+pub fn lesson_guide(lesson: &Lesson, language: Language) -> &'static [&'static str] {
+    match language {
+        Language::Zh => match lesson.id {
+            "syntax-basics" => &[
+                "Rust 默认让绑定不可变：`let x = 5` 之后不能直接改 x。需要原地修改时写 `let mut x = 5`。",
+                "`let` 可以 shadowing：重新声明同名变量会创建新绑定，常用于类型转换或临时加工。",
+                "没有分号的 block 最后一行是表达式返回值，这是后面函数返回值和 match 表达式的基础。",
+            ],
+            "control-flow" => &[
+                "`if` 和 `match` 在 Rust 里都可以是表达式，因此分支可以直接产出一个值。",
+                "`match` 必须覆盖所有可能，这让遗漏状态在编译期就暴露出来。",
+                "只关心一种模式时用 `if let`，它牺牲穷尽检查，换来更少样板代码。",
+            ],
+            "data-functions" => &[
+                "标量类型如整数、浮点、布尔和字符通常很直观；复合类型如元组和数组会把多个值组合起来。",
+                "数组类型写作 `[T; N]`，长度是类型的一部分；元组可以包含不同类型，并可用模式解构。",
+                "函数返回值通常来自函数体最后一个表达式；加分号会把表达式变成语句，返回 `()`。",
+            ],
+            "ownership" => &[
+                "Rust 的每个值都有唯一所有者，所有者离开作用域时值会被释放。",
+                "把 `String` 赋给另一个变量会 move 所有权，旧变量不能再用；整数这类 Copy 类型会复制。",
+                "需要保留原值时显式 `clone`；只想读取时优先借用，避免不必要的所有权转移。",
+            ],
+            "slices" => &[
+                "切片不是新集合，而是对原集合一段连续区域的借用视图。",
+                "字符串切片范围按字节索引计算，`&s[0..5]` 借用 `hello` 这段内容。",
+                "`first_word` 返回 `&str` 比返回索引更安全，因为借用关系能阻止原字符串被错误修改。",
+            ],
+            "borrowing" => &[
+                "引用让函数临时访问值而不取得所有权，`&T` 用于读取，`&mut T` 用于修改。",
+                "同一时间可以有多个不可变引用，或者一个可变引用，但两者不能同时活跃。",
+                "借用检查器关注引用最后一次使用的位置；缩短引用使用范围，往往能让后续可变操作通过。",
+            ],
+            "structs-enums" => &[
+                "struct 适合把相关字段组织成领域对象，字段初始化可以清楚表达每个值的含义。",
+                "`impl` 把行为放到类型旁边；只读方法用 `&self`，修改方法用 `&mut self`，消费方法用 `self`。",
+                "enum 表达一组有限变体，配合 `match` 能强制你处理每种状态。",
+            ],
+            "result-option" => &[
+                "`Option<T>` 表达可能没有值，替代很多语言里的 null。",
+                "`Result<T, E>` 表达可能失败的操作，成功是 `Ok(T)`，失败是 `Err(E)`。",
+                "`?` 会在错误时提前返回，在成功时拆出内部值，是错误传播的常用写法。",
+            ],
+            "collections" => &[
+                "`Vec<T>` 是可增长数组，追加元素需要可变绑定。",
+                "`String` 是可增长 UTF-8 文本，追加字符串切片常用 `push_str`。",
+                "`HashMap::entry(...).or_insert(...)` 适合统计和缓存：存在就复用，不存在才插入。",
+            ],
+            "iterators-traits" => &[
+                "迭代器默认是惰性的，只有 `sum`、`collect`、`for` 这类消费操作才真正执行遍历。",
+                "`iter()` 借用元素，`into_iter()` 通常消费集合并交出元素所有权。",
+                "trait 描述类型能做什么；生命周期标注描述引用之间的有效期关系，不会延长任何值。",
+            ],
+            "generics-traits" => &[
+                "泛型让函数和类型复用逻辑，但你对泛型值做了什么操作，就要声明相应 trait bound。",
+                "复杂约束可以写进 `where` 子句，让签名更可读。",
+                "生命周期参数把输入引用和输出引用关联起来，告诉编译器返回值不能活得比来源更久。",
+            ],
+            "concurrency" => &[
+                "`thread::spawn` 的闭包可能比当前函数活得更久，因此捕获外部值时经常需要 `move`。",
+                "channel 通过发送值来在线程间转移所有权，发送后原线程不能继续使用该值。",
+                "共享可变状态通常用 `Arc<Mutex<T>>`：Arc 负责多所有者，Mutex 负责互斥修改。",
+            ],
+            _ => &[],
+        },
+        Language::En => match lesson.id {
+            "syntax-basics" => &[
+                "Bindings are immutable by default. Use `let mut x = 5` only when the same binding must change.",
+                "Shadowing creates a new binding with the same name, which is useful for transformations and type changes.",
+                "A block's final line without a semicolon is its return expression, which also explains function returns and match values.",
+            ],
+            "control-flow" => &[
+                "`if` and `match` can be expressions in Rust, so branches can directly produce values.",
+                "`match` must cover every possible case, turning missed states into compile-time errors.",
+                "Use `if let` when only one pattern matters; it trades exhaustiveness for less boilerplate.",
+            ],
+            "data-functions" => &[
+                "Scalar types are single values; tuples and arrays combine values into fixed compound structures.",
+                "Array types are written `[T; N]`, with the length in the type. Tuples can hold different types and be destructured.",
+                "Function return values usually come from the final expression. Adding a semicolon turns it into a statement returning `()`.",
+            ],
+            "ownership" => &[
+                "Every value has one owner, and the value is dropped when that owner leaves scope.",
+                "Assigning a `String` moves ownership, while small Copy types such as integers are copied.",
+                "Use `clone` only when you need another owned copy; otherwise borrow to avoid unnecessary moves.",
+            ],
+            "slices" => &[
+                "A slice is not a new collection; it is a borrowed view into a continuous region of an existing collection.",
+                "String slices use byte ranges, so `&s[0..5]` borrows the `hello` part.",
+                "Returning `&str` from `first_word` is safer than returning an index because the borrow keeps the source string constrained.",
+            ],
+            "borrowing" => &[
+                "References let code access values without taking ownership: `&T` reads and `&mut T` mutates.",
+                "At one time, you can have many immutable references or one mutable reference, but not both active together.",
+                "The borrow checker follows the last use of a reference; shortening that use often unlocks later mutation.",
+            ],
+            "structs-enums" => &[
+                "Structs group related fields into domain objects with explicit names.",
+                "`impl` keeps behavior next to the type: `&self` reads, `&mut self` mutates, and `self` consumes.",
+                "Enums represent a fixed set of variants, and `match` forces every state to be handled.",
+            ],
+            "result-option" => &[
+                "`Option<T>` expresses a value that may be absent, replacing many uses of null.",
+                "`Result<T, E>` represents fallible operations: `Ok(T)` for success and `Err(E)` for failure.",
+                "The `?` operator returns early on errors and unwraps successful values, making error propagation concise.",
+            ],
+            "collections" => &[
+                "`Vec<T>` is a growable array, and pushing elements requires a mutable binding.",
+                "`String` is growable UTF-8 text; `push_str` appends a string slice.",
+                "`HashMap::entry(...).or_insert(...)` is ideal for counts and caches: reuse existing entries and insert missing ones.",
+            ],
+            "iterators-traits" => &[
+                "Iterators are lazy until consumed by operations such as `sum`, `collect`, or `for`.",
+                "`iter()` borrows elements, while `into_iter()` usually consumes the collection and yields owned elements.",
+                "Traits describe capabilities; lifetime annotations describe reference relationships and do not extend values.",
+            ],
+            "generics-traits" => &[
+                "Generics reuse logic, but every operation on a generic value requires the matching trait bound.",
+                "Complex bounds often read better in a `where` clause.",
+                "Lifetime parameters relate input and output references so returned references cannot outlive their sources.",
+            ],
+            "concurrency" => &[
+                "A `thread::spawn` closure may outlive the current function, so captured values often need `move`.",
+                "Channels transfer ownership between threads; after sending a value, the sender cannot use it again.",
+                "Shared mutable state commonly uses `Arc<Mutex<T>>`: Arc for multiple owners and Mutex for exclusive mutation.",
+            ],
+            _ => &[],
+        },
     }
 }
 
