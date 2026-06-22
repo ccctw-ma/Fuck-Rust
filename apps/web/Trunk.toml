@@ -1,0 +1,7 @@
+[build]
+target = "index.html"
+dist = "../../dist"
+public_url = "/"
+
+[watch]
+watch = ["src", "../../crates/learning_core/src", "styles.css", "index.html"]
