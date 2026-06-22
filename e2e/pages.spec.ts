@@ -61,51 +61,64 @@ test.describe('Rust Ladder pages', () => {
     expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1);
   });
 
-  test('desktop learning category rail can collapse without hiding the toggle', async ({ page }) => {
+  test('desktop learning category rail is full height, compact by default, and expandable', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/learn');
 
     const rail = page.locator('.side-rail');
     const content = page.locator('.rail-content');
-    const collapseButton = page.getByRole('button', { name: /收起分类|Collapse categories/ });
-    await expect(collapseButton).toBeVisible();
-
-    const openBox = await rail.boundingBox();
-    await collapseButton.click();
-
+    const openButton = page.getByRole('button', { name: /展开分类|Open categories/ });
+    await expect(openButton).toBeVisible();
     await expect(rail).toHaveClass(/is-collapsed/);
     await expect(content).toHaveAttribute('aria-hidden', 'true');
-    await expect(page.getByRole('button', { name: /展开分类|Open categories/ })).toBeVisible();
 
     const collapsedBox = await rail.boundingBox();
-    expect(openBox).not.toBeNull();
+    const panelBox = await page.locator('.panel.full').boundingBox();
     expect(collapsedBox).not.toBeNull();
-    expect(collapsedBox?.width ?? 0).toBeLessThan((openBox?.width ?? 0) * 0.5);
+    expect(collapsedBox?.x ?? 99).toBeLessThanOrEqual(1);
+    expect(collapsedBox?.y ?? 99).toBeLessThanOrEqual(1);
+    expect(collapsedBox?.height ?? 0).toBeGreaterThanOrEqual(890);
+    expect(collapsedBox?.width ?? 999).toBeLessThanOrEqual(64);
+    expect((panelBox?.x ?? 0) - ((collapsedBox?.x ?? 0) + (collapsedBox?.width ?? 0))).toBeGreaterThanOrEqual(12);
+
+    await openButton.click();
+
+    await expect(rail).toHaveClass(/is-open/);
+    await expect(content).toHaveAttribute('aria-hidden', 'false');
+    await expect(page.getByRole('button', { name: /收起分类|Collapse categories/ })).toBeVisible();
+    await expect
+      .poll(async () => (await rail.boundingBox())?.width ?? 0)
+      .toBeGreaterThan((collapsedBox?.width ?? 0) * 3);
     await assertNoHorizontalOverflow(page);
   });
 
-  test('mobile learning category drawer opens from the left and exposes lesson links', async ({ page }) => {
+  test('mobile learning category rail stays compact and opens as a left drawer', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/learn');
 
     const rail = page.locator('.side-rail');
     const railLink = rail.locator('.rail-item').first();
-    await expect(page.getByRole('button', { name: /收起分类|Collapse categories/ })).toBeVisible();
-    await expect(railLink).toBeVisible();
-
-    const openBox = await rail.boundingBox();
-    expect(openBox).not.toBeNull();
-    expect(openBox?.x ?? 99).toBeLessThanOrEqual(12);
-    expect(openBox?.width ?? 999).toBeLessThanOrEqual(360);
-
-    await page.getByRole('button', { name: /收起分类|Collapse categories/ }).click();
-    await expect(rail).toHaveClass(/is-collapsed/);
-    await expect(railLink).not.toBeVisible();
     await expect(page.getByRole('button', { name: /展开分类|Open categories/ })).toBeVisible();
+    await expect(railLink).not.toBeVisible();
+
+    const compactBox = await rail.boundingBox();
+    const panelBox = await page.locator('.panel.full').boundingBox();
+    expect(compactBox).not.toBeNull();
+    expect(compactBox?.x ?? 99).toBeLessThanOrEqual(1);
+    expect(compactBox?.y ?? 99).toBeLessThanOrEqual(1);
+    expect(compactBox?.height ?? 0).toBeGreaterThanOrEqual(836);
+    expect(compactBox?.width ?? 999).toBeLessThanOrEqual(50);
+    expect((panelBox?.x ?? 0) - ((compactBox?.x ?? 0) + (compactBox?.width ?? 0))).toBeGreaterThanOrEqual(6);
 
     await page.getByRole('button', { name: /展开分类|Open categories/ }).click();
     await expect(rail).toHaveClass(/is-open/);
     await expect(railLink).toBeVisible();
+    const openBox = await rail.boundingBox();
+    expect(openBox?.width ?? 0).toBeLessThanOrEqual(310);
+
+    await page.getByRole('button', { name: /收起分类|Collapse categories/ }).click();
+    await expect(rail).toHaveClass(/is-collapsed/);
+    await expect(railLink).not.toBeVisible();
     await assertNoHorizontalOverflow(page);
   });
 

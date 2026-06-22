@@ -84,7 +84,7 @@ fn app_shell() -> Html {
     let progress = use_state(load_progress);
     let language = use_state(load_language);
     let theme = use_state(load_theme);
-    let rail_open = use_state(|| true);
+    let rail_open = use_state(|| false);
     let handle = ProgressHandle {
         snapshot: progress.clone(),
     };
