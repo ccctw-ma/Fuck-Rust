@@ -84,6 +84,7 @@ fn app_shell() -> Html {
     let progress = use_state(load_progress);
     let language = use_state(load_language);
     let theme = use_state(load_theme);
+    let rail_open = use_state(|| true);
     let handle = ProgressHandle {
         snapshot: progress.clone(),
     };
@@ -112,6 +113,10 @@ fn app_shell() -> Html {
             theme.set(next);
         })
     };
+    let on_rail_toggle = {
+        let rail_open = rail_open.clone();
+        Callback::from(move |_| rail_open.set(!*rail_open))
+    };
 
     {
         use_effect_with((active_theme, active_language), move |(theme, language)| {
@@ -130,7 +135,13 @@ fn app_shell() -> Html {
                     on_theme_toggle={on_theme_toggle}
                 />
                 <div class="shell-grid">
-                    <SideRail progress_rate={progress_rate} lessons={lessons} language={active_language} />
+                    <SideRail
+                        progress_rate={progress_rate}
+                        lessons={lessons}
+                        language={active_language}
+                        is_open={*rail_open}
+                        on_toggle={on_rail_toggle}
+                    />
                     <main class="main-stack">
                         <Switch<Route> render={move |route| switch(route, handle.clone(), active_language)} />
                     </main>

@@ -61,6 +61,54 @@ test.describe('Rust Ladder pages', () => {
     expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1);
   });
 
+  test('desktop learning category rail can collapse without hiding the toggle', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/learn');
+
+    const rail = page.locator('.side-rail');
+    const content = page.locator('.rail-content');
+    const collapseButton = page.getByRole('button', { name: /收起分类|Collapse categories/ });
+    await expect(collapseButton).toBeVisible();
+
+    const openBox = await rail.boundingBox();
+    await collapseButton.click();
+
+    await expect(rail).toHaveClass(/is-collapsed/);
+    await expect(content).toHaveAttribute('aria-hidden', 'true');
+    await expect(page.getByRole('button', { name: /展开分类|Open categories/ })).toBeVisible();
+
+    const collapsedBox = await rail.boundingBox();
+    expect(openBox).not.toBeNull();
+    expect(collapsedBox).not.toBeNull();
+    expect(collapsedBox?.width ?? 0).toBeLessThan((openBox?.width ?? 0) * 0.5);
+    await assertNoHorizontalOverflow(page);
+  });
+
+  test('mobile learning category drawer opens from the left and exposes lesson links', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/learn');
+
+    const rail = page.locator('.side-rail');
+    const railLink = rail.locator('.rail-item').first();
+    await expect(page.getByRole('button', { name: /收起分类|Collapse categories/ })).toBeVisible();
+    await expect(railLink).toBeVisible();
+
+    const openBox = await rail.boundingBox();
+    expect(openBox).not.toBeNull();
+    expect(openBox?.x ?? 99).toBeLessThanOrEqual(12);
+    expect(openBox?.width ?? 999).toBeLessThanOrEqual(360);
+
+    await page.getByRole('button', { name: /收起分类|Collapse categories/ }).click();
+    await expect(rail).toHaveClass(/is-collapsed/);
+    await expect(railLink).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /展开分类|Open categories/ })).toBeVisible();
+
+    await page.getByRole('button', { name: /展开分类|Open categories/ }).click();
+    await expect(rail).toHaveClass(/is-open/);
+    await expect(railLink).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+  });
+
   test('lesson card action buttons keep breathing room from content', async ({ page }) => {
     await page.goto('/learn');
 

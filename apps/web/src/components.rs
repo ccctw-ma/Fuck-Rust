@@ -70,24 +70,51 @@ pub struct SideRailProps {
     pub progress_rate: f32,
     pub lessons: Vec<LessonProgress>,
     pub language: Language,
+    pub is_open: bool,
+    pub on_toggle: Callback<MouseEvent>,
 }
 
 #[function_component(SideRail)]
 pub fn side_rail(props: &SideRailProps) -> Html {
     let percent = (props.progress_rate * 100.0).round() as u8;
+    let rail_class = if props.is_open {
+        "side-rail is-open"
+    } else {
+        "side-rail is-collapsed"
+    };
+    let toggle_label = if props.is_open {
+        t(props.language, "close_categories")
+    } else {
+        t(props.language, "open_categories")
+    };
 
     html! {
-        <aside class="side-rail" aria-label="学习进度">
-            <p class="rail-title">{ t(props.language, "rail_title") }</p>
-            <p class="rail-caption">
-                { t(props.language, "rail_caption") }
-            </p>
-            <div class="progress-track" aria-label="总完成率">
-                <div class="progress-fill" style={format!("width: {percent}%")}></div>
+        <aside class={rail_class} aria-label={t(props.language, "rail_title")}>
+            <div class="rail-header">
+                <p class="rail-title">{ t(props.language, "rail_title") }</p>
+                <button
+                    class="rail-toggle tiny-button"
+                    type="button"
+                    aria-controls="learning-path-rail"
+                    aria-expanded={props.is_open.to_string()}
+                    onclick={props.on_toggle.clone()}
+                >
+                    <span aria-hidden="true">{ if props.is_open { "←" } else { "☰" } }</span>
+                    <span>{ toggle_label }</span>
+                </button>
             </div>
-            <p class="rail-caption">{ format!("{} {percent}%", t(props.language, "total_progress")) }</p>
-            <div class="rail-list">
-                { for props.lessons.iter().map(|lesson| render_lesson(lesson, props.language)) }
+            <span class="rail-collapsed-label">{ t(props.language, "path_short") }</span>
+            <div id="learning-path-rail" class="rail-content" aria-hidden={(!props.is_open).to_string()}>
+                <p class="rail-caption">
+                    { t(props.language, "rail_caption") }
+                </p>
+                <div class="progress-track" aria-label={t(props.language, "total_progress")}>
+                    <div class="progress-fill" style={format!("width: {percent}%")}></div>
+                </div>
+                <p class="rail-caption">{ format!("{} {percent}%", t(props.language, "total_progress")) }</p>
+                <div class="rail-list">
+                    { for props.lessons.iter().map(|lesson| render_lesson(lesson, props.language)) }
+                </div>
             </div>
         </aside>
     }
