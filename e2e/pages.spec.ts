@@ -8,6 +8,13 @@ const pages = [
   { path: '/exercise/syntax-let-mut', title: /让变量真的可变|Make a variable mutable/ },
 ];
 
+const exerciseCases = [
+  { id: 'syntax-let-mut', kind: 'fill blank input' },
+  { id: 'syntax-output', kind: 'code output textarea' },
+  { id: 'array-type', kind: 'single choice buttons' },
+  { id: 'borrowing-mut-ref', kind: 'order step buttons' },
+];
+
 test.describe('Rust Ladder pages', () => {
   for (const item of pages) {
     test(`${item.path} renders without visual regressions`, async ({ page }) => {
@@ -53,6 +60,21 @@ test.describe('Rust Ladder pages', () => {
     expect(box).not.toBeNull();
     expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1);
   });
+
+  test('lesson card action buttons keep breathing room from content', async ({ page }) => {
+    await page.goto('/learn');
+
+    const gap = await verticalGapBetweenSiblings(page, '.lesson-card', '.tiny-button');
+    expect(gap).toBeGreaterThanOrEqual(10);
+  });
+
+  for (const item of exerciseCases) {
+    test(`${item.kind} keeps input and submit controls separated`, async ({ page }) => {
+      await page.goto(`/exercise/${item.id}`);
+
+      await assertExerciseControlsHaveSpacing(page);
+    });
+  }
 });
 
 async function assertNoHorizontalOverflow(page: Page) {
@@ -106,4 +128,53 @@ function relativeLuminance([red, green, blue]: [number, number, number]) {
     return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+async function assertExerciseControlsHaveSpacing(page: Page) {
+  const answerStack = page.locator('.answer-stack').first();
+  const buttonRow = page.locator('.button-row').first();
+  await expect(answerStack).toBeVisible();
+  await expect(buttonRow).toBeVisible();
+
+  const answerBox = await answerStack.boundingBox();
+  const buttonBox = await buttonRow.boundingBox();
+  expect(answerBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+
+  const verticalGap = (buttonBox?.y ?? 0) - ((answerBox?.y ?? 0) + (answerBox?.height ?? 0));
+  expect(verticalGap).toBeGreaterThanOrEqual(12);
+
+  const innerGaps = await answerStack.evaluate((element) => {
+    const directControls = Array.from(element.children).filter((child) =>
+      child.matches('button, input, textarea, .feedback'),
+    );
+    const boxes = directControls
+      .map((element) => element.getBoundingClientRect())
+      .filter((box) => box.width > 0 && box.height > 0)
+      .sort((a, b) => a.top - b.top || a.left - b.left);
+
+    return boxes.slice(1).map((box, index) => box.top - boxes[index].bottom);
+  });
+
+  for (const gap of innerGaps) {
+    expect(gap).toBeGreaterThanOrEqual(8);
+  }
+}
+
+async function verticalGapBetweenSiblings(page: Page, parentSelector: string, childSelector: string) {
+  return page.locator(parentSelector).first().evaluate((parent, selector) => {
+    const target = parent.querySelector(selector as string);
+    if (!target) {
+      throw new Error(`Missing child ${selector}`);
+    }
+
+    const targetBox = target.getBoundingClientRect();
+    const previousBottom = Array.from(parent.children)
+      .filter((child) => child !== target)
+      .map((child) => child.getBoundingClientRect())
+      .filter((box) => box.width > 0 && box.height > 0 && box.bottom <= targetBox.top)
+      .reduce((bottom, box) => Math.max(bottom, box.bottom), 0);
+
+    return targetBox.top - previousBottom;
+  }, childSelector);
 }

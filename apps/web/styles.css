@@ -598,6 +598,7 @@ button {
 .code-block {
   position: relative;
   overflow: auto;
+  margin: 16px 0 0;
   padding: 44px 18px 18px 50px;
   border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
   border-radius: 22px;
@@ -679,8 +680,12 @@ button {
 
 .answer-stack {
   display: grid;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.answer-stack + .button-row {
+  margin-top: 18px;
 }
 
 .option-button {
@@ -718,6 +723,10 @@ button {
   border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
   border-radius: 22px;
   background: color-mix(in srgb, var(--panel-strong) 42%, transparent);
+}
+
+.feedback .tiny-button {
+  margin-top: 10px;
 }
 
 .feedback.correct {
@@ -832,6 +841,10 @@ button {
   display: grid;
   gap: 10px;
   margin-top: 16px;
+}
+
+.lesson-card > .tiny-button {
+  margin-top: 10px;
 }
 
 .nav-link:focus-visible,
