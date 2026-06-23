@@ -1,4 +1,6 @@
 use learning_core::{exercises, lesson_progress, ProgressSnapshot};
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::{closure::Closure, JsCast};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -8,6 +10,8 @@ use crate::pages::{CardsPage, ExercisePage, HomePage, LearnPage, NotFoundPage, S
 use crate::storage::{
     load_language, load_progress, load_theme, save_language, save_progress, save_theme,
 };
+
+const RAIL_COLLAPSE_WIDTH: f64 = 1060.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Theme {
@@ -84,7 +88,7 @@ fn app_shell() -> Html {
     let progress = use_state(load_progress);
     let language = use_state(load_language);
     let theme = use_state(load_theme);
-    let rail_open = use_state(|| false);
+    let rail_open = use_state(|| !viewport_is_compact());
     let handle = ProgressHandle {
         snapshot: progress.clone(),
     };
@@ -115,7 +119,13 @@ fn app_shell() -> Html {
     };
     let on_rail_toggle = {
         let rail_open = rail_open.clone();
-        Callback::from(move |_| rail_open.set(!*rail_open))
+        Callback::from(move |_| {
+            if viewport_is_compact() {
+                rail_open.set(!*rail_open);
+            } else {
+                rail_open.set(true);
+            }
+        })
     };
 
     {
@@ -123,6 +133,11 @@ fn app_shell() -> Html {
             apply_document_preferences(*theme, *language);
             || ()
         });
+    }
+
+    {
+        let rail_open = rail_open.clone();
+        use_effect_with((), move |_| install_resize_sync(rail_open))
     }
 
     html! {
@@ -178,6 +193,46 @@ fn apply_document_preferences(theme: Theme, language: Language) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn apply_document_preferences(_: Theme, _: Language) {}
+
+#[cfg(target_arch = "wasm32")]
+fn viewport_is_compact() -> bool {
+    web_sys::window()
+        .and_then(|window| window.inner_width().ok())
+        .and_then(|width| width.as_f64())
+        .map(|width| width < RAIL_COLLAPSE_WIDTH)
+        .unwrap_or(true)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn viewport_is_compact() -> bool {
+    false
+}
+
+#[cfg(target_arch = "wasm32")]
+fn install_resize_sync(rail_open: UseStateHandle<bool>) -> Box<dyn FnOnce()> {
+    let Some(window) = web_sys::window() else {
+        return Box::new(|| ());
+    };
+    rail_open.set(!viewport_is_compact());
+
+    let handler = Closure::<dyn FnMut()>::wrap(Box::new({
+        let rail_open = rail_open.clone();
+        move || rail_open.set(!viewport_is_compact())
+    }));
+    let _ = window.add_event_listener_with_callback("resize", handler.as_ref().unchecked_ref());
+
+    Box::new(move || {
+        if let Some(window) = web_sys::window() {
+            let _ = window
+                .remove_event_listener_with_callback("resize", handler.as_ref().unchecked_ref());
+        }
+    })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn install_resize_sync(_: UseStateHandle<bool>) -> Box<dyn FnOnce()> {
+    Box::new(|| ())
+}
 
 fn current_timestamp() -> u64 {
     #[cfg(target_arch = "wasm32")]

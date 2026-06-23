@@ -61,35 +61,34 @@ test.describe('Rust Ladder pages', () => {
     expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1);
   });
 
-  test('desktop learning category trigger floats without taking layout width', async ({ page }) => {
+  test('desktop wide layout keeps learning categories expanded', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/learn');
 
     const rail = page.locator('.side-rail');
     const content = page.locator('.rail-content');
-    const openButton = page.getByRole('button', { name: /展开分类|Open categories/ });
-    await expect(openButton).toBeVisible();
-    await expect(rail).toHaveClass(/is-collapsed/);
-    await expect(content).toHaveAttribute('aria-hidden', 'true');
-
-    const collapsedBox = await rail.boundingBox();
-    const panelBox = await page.locator('.panel.full').boundingBox();
-    expect(collapsedBox).not.toBeNull();
-    expect(collapsedBox?.width ?? 999).toBeLessThanOrEqual(56);
-    expect(collapsedBox?.height ?? 999).toBeLessThanOrEqual(56);
-    expect(panelBox?.x ?? 0).toBeGreaterThan(12);
-
-    await openButton.click();
-
     await expect(rail).toHaveClass(/is-open/);
     await expect(content).toHaveAttribute('aria-hidden', 'false');
-    await expect(page.getByRole('button', { name: /收起分类|Collapse categories/ })).toBeVisible();
-    await expect
-      .poll(async () => (await rail.boundingBox())?.width ?? 0)
-      .toBeGreaterThan((collapsedBox?.width ?? 0) * 3);
-    const desktopOpenBox = await rail.boundingBox();
-    expect(desktopOpenBox?.y ?? 0).toBeGreaterThan(20);
-    expect(desktopOpenBox?.height ?? 999).toBeLessThan(840);
+    await expect(rail.locator('.rail-item').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /收起分类|Collapse categories/ })).not.toBeVisible();
+
+    const railBox = await rail.boundingBox();
+    const panelBox = await page.locator('.panel.full').boundingBox();
+    expect(railBox?.width ?? 0).toBeGreaterThanOrEqual(280);
+    expect((panelBox?.x ?? 0) - ((railBox?.x ?? 0) + (railBox?.width ?? 0))).toBeGreaterThanOrEqual(20);
+    await assertNoHorizontalOverflow(page);
+  });
+
+  test('tablet layout folds learning categories below the responsive breakpoint', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 760 });
+    await page.goto('/learn');
+
+    const rail = page.locator('.side-rail');
+    await expect(page.getByRole('button', { name: /展开分类|Open categories/ })).toBeVisible();
+    await expect(rail).toHaveClass(/is-collapsed/);
+    const compactBox = await rail.boundingBox();
+    expect(compactBox?.width ?? 999).toBeLessThanOrEqual(56);
+    expect(compactBox?.height ?? 999).toBeLessThanOrEqual(56);
     await assertNoHorizontalOverflow(page);
   });
 
