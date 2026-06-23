@@ -8,13 +8,21 @@ export PATH="$HOME/.cargo/bin:$PATH"
 MESSAGE="${1:-chore: iterate rust learning site}"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
+is_github_cli() {
+  command -v gh >/dev/null 2>&1 && gh version 2>/dev/null | grep -Eq '^gh version [0-9]+'
+}
+
 if [[ -z "$BRANCH" ]]; then
   echo "Cannot ship from a detached HEAD."
   exit 1
 fi
 
 if [[ "${SYNC_GITHUB_SECRETS:-1}" == "1" ]]; then
-  ./scripts/sync-github-secrets.sh
+  if is_github_cli; then
+    ./scripts/sync-github-secrets.sh
+  else
+    echo "GitHub CLI is unavailable or 'gh' is not GitHub CLI; skipping GitHub secrets sync."
+  fi
 fi
 
 rustup target add wasm32-unknown-unknown
@@ -50,7 +58,7 @@ fi
 
 git push origin "$BRANCH"
 
-if command -v gh >/dev/null 2>&1 && gh run --help >/dev/null 2>&1; then
+if is_github_cli; then
   echo "Waiting for the newest GitHub Actions run on $BRANCH..."
   sleep 8
   RUN_ID="$(gh run list --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId')"
@@ -61,5 +69,5 @@ if command -v gh >/dev/null 2>&1 && gh run --help >/dev/null 2>&1; then
     echo "No GitHub Actions run found for branch $BRANCH."
   fi
 else
-  echo "GitHub CLI is unavailable; push completed, but workflow monitoring was skipped."
+  echo "GitHub CLI is unavailable or 'gh' is not GitHub CLI; push completed, but workflow monitoring was skipped."
 fi

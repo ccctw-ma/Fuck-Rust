@@ -4,6 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+is_github_cli() {
+  command -v gh >/dev/null 2>&1 && gh version 2>/dev/null | grep -Eq '^gh version [0-9]+'
+}
+
+if ! is_github_cli; then
+  echo "GitHub CLI is unavailable or 'gh' is not GitHub CLI; skipping GitHub secrets sync."
+  exit 0
+fi
+
 if [[ -f ".env" ]]; then
   set -a
   # shellcheck disable=SC1091
