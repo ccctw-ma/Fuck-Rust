@@ -6,8 +6,8 @@ pub use curriculum::{
     cards, lessons, Demo, KnowledgeCard, Lesson, LessonProgress, Stage, StageSummary,
 };
 pub use exercises::{
-    exercise_by_id, exercises, exercises_for_lesson, Answer, CheckOutcome, Exercise, ExerciseKind,
-    UserAnswer,
+    exercise_by_id, exercises, exercises_for_lesson, Answer, CheckOutcome, Exercise,
+    ExerciseDifficulty, ExerciseKind, UserAnswer,
 };
 pub use progress::{AttemptRecord, ProgressSnapshot, WeakLesson};
 
@@ -32,12 +32,12 @@ pub fn stage_summaries(progress: &ProgressSnapshot) -> Vec<StageSummary> {
                 .collect();
             let exercise_count = stage_lessons
                 .iter()
-                .flat_map(|lesson| lesson.exercise_ids.iter())
-                .count();
+                .map(|lesson| exercises_for_lesson(lesson.id).len())
+                .sum();
             let completed_count = stage_lessons
                 .iter()
-                .flat_map(|lesson| lesson.exercise_ids.iter())
-                .filter(|exercise_id| progress.is_completed(exercise_id))
+                .flat_map(|lesson| exercises_for_lesson(lesson.id))
+                .filter(|exercise| progress.is_completed(exercise.id))
                 .count();
 
             StageSummary {
@@ -54,11 +54,11 @@ pub fn lesson_progress(progress: &ProgressSnapshot) -> Vec<LessonProgress> {
     lessons()
         .iter()
         .map(|lesson| {
-            let total = lesson.exercise_ids.len();
-            let completed = lesson
-                .exercise_ids
+            let lesson_exercises = exercises_for_lesson(lesson.id);
+            let total = lesson_exercises.len();
+            let completed = lesson_exercises
                 .iter()
-                .filter(|exercise_id| progress.is_completed(exercise_id))
+                .filter(|exercise| progress.is_completed(exercise.id))
                 .count();
 
             LessonProgress {
@@ -121,7 +121,7 @@ mod tests {
 
         assert_eq!(summaries.len(), Stage::all().len());
         assert_eq!(foundation.lesson_count, 3);
-        assert_eq!(foundation.exercise_count, 7);
+        assert_eq!(foundation.exercise_count, 78);
         assert_eq!(foundation.completed_count, 2);
     }
 
@@ -135,9 +135,9 @@ mod tests {
             .find(|item| item.lesson.id == "borrowing")
             .expect("borrowing lesson progress");
 
-        assert_eq!(borrowing.total, 4);
+        assert_eq!(borrowing.total, 26);
         assert_eq!(borrowing.completed, 1);
         assert!(!borrowing.locked);
-        assert_eq!(borrowing.rate(), 0.25);
+        assert_eq!(borrowing.rate(), 1.0 / 26.0);
     }
 }

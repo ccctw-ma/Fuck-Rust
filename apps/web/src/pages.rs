@@ -90,11 +90,17 @@ pub fn learn_page(props: &ProgressPageProps) -> Html {
             <p class="section-copy">{ t(language, "learn_copy") }</p>
             <div class="lesson-grid">
                 { for lessons().iter().map(|lesson| {
-                    let completed = lesson.exercise_ids
+                    let lesson_exercises = learning_core::exercises_for_lesson(lesson.id);
+                    let total = lesson_exercises.len();
+                    let completed = lesson_exercises
                         .iter()
-                        .filter(|id| snapshot.is_completed(id))
+                        .filter(|exercise| snapshot.is_completed(exercise.id))
                         .count();
-                    let first_id = lesson.exercise_ids.first().copied().unwrap_or_default().to_owned();
+                    let first_id = lesson_exercises
+                        .first()
+                        .map(|exercise| exercise.id)
+                        .unwrap_or_default()
+                        .to_owned();
 
                     html! {
                         <article class="lesson-card">
@@ -112,10 +118,10 @@ pub fn learn_page(props: &ProgressPageProps) -> Html {
                             <div class="progress-track">
                                 <div
                                     class="progress-fill"
-                                    style={format!("width: {}%", completed * 100 / lesson.exercise_ids.len())}
+                                    style={format!("width: {}%", completed * 100 / total)}
                                 ></div>
                             </div>
-                            <p class="metric-label">{ format!("{} {}/{}", t(language, "completed"), completed, lesson.exercise_ids.len()) }</p>
+                            <p class="metric-label">{ format!("{} {}/{}", t(language, "completed"), completed, total) }</p>
                             <Link<Route> to={Route::Exercise { id: first_id }} classes="tiny-button">
                                 { t(language, "enter_exercise") }
                             </Link<Route>>

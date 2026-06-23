@@ -126,11 +126,9 @@ fn render_lesson(item: &LessonProgress, language: Language) -> Html {
     } else {
         "status-dot"
     };
-    let first_exercise = item
-        .lesson
-        .exercise_ids
+    let first_exercise = learning_core::exercises_for_lesson(item.lesson.id)
         .first()
-        .copied()
+        .map(|exercise| exercise.id)
         .unwrap_or_default()
         .to_owned();
 
