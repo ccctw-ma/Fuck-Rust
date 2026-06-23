@@ -150,37 +150,26 @@ button {
   width: 40px;
   height: 40px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--mint) 58%, var(--amber));
+  border: 0;
   border-radius: 50%;
   color: var(--rust-black);
-  background:
-    radial-gradient(circle at center, var(--amber) 0 38%, transparent 39%),
-    conic-gradient(from 10deg, var(--mint), var(--amber), var(--rust-brown), var(--mint));
-  box-shadow: 0 0 28px rgba(244, 102, 35, 0.24);
+  background: transparent;
+  box-shadow: 0 8px 24px rgba(122, 63, 28, 0.22);
   font-weight: 950;
   overflow: hidden;
 }
 
 .brand-mark img {
   display: block;
-  width: 82%;
-  height: 82%;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: contain;
 }
 
 .brand-mark::before {
-  position: absolute;
-  inset: -6px;
-  z-index: -1;
-  border-radius: 50%;
-  content: "";
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(244, 102, 35, 0.48) 0deg 8deg,
-    transparent 8deg 18deg
-  );
-  opacity: 0.6;
+  display: none;
+  content: none;
 }
 
 .brand-title {
