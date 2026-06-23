@@ -823,6 +823,45 @@ button {
   color: var(--red);
 }
 
+.solution-guide {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--amber) 18%, transparent);
+}
+
+.solution-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.solution-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.solution-steps li::marker {
+  color: var(--mint);
+  font-weight: 900;
+}
+
+.trap-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--red) 18%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--red) 6%, transparent);
+}
+
 .demo-panel {
   display: flex;
   flex-direction: column;
