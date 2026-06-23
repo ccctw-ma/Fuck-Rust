@@ -45,8 +45,12 @@ watch_github_actions_via_api() {
   python3 - "$repo_slug" "$branch" "$head_sha" <<'PY'
 import json
 import os
+import re
 import sys
 import time
+import html as html_lib
+import urllib.error
+import urllib.parse
 import urllib.request
 
 repo_slug = sys.argv[1]
@@ -69,6 +73,12 @@ def github_get(url):
         return json.loads(response.read().decode("utf-8"))
 
 
+def github_html(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "fuck-rust-ship-script"})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return response.read().decode("utf-8", "replace")
+
+
 def latest_run_for_head():
     url = f"https://api.github.com/repos/{repo_slug}/actions/runs?branch={branch}&per_page=1"
     data = github_get(url)
@@ -79,9 +89,53 @@ def latest_run_for_head():
     return None
 
 
+def latest_run_for_head_from_html():
+    short_sha = head_sha[:7]
+    query = urllib.parse.quote("branch:" + branch)
+    page = github_html(f"https://github.com/{repo_slug}/actions?query={query}")
+    rows = page.split("Box-row js-socket-channel")
+    for row in rows:
+        if short_sha not in row:
+            continue
+        run_id_match = re.search(r"/actions/runs/(\d+)", row)
+        label_match = re.search(r'aria-label="([^"]+)"', row)
+        label = html_lib.unescape(label_match.group(1) if label_match else "").lower()
+        if "currently running" in label or "queued" in label or "waiting" in label:
+            conclusion = None
+            status = "in_progress"
+        elif "completed successfully" in label or "success" in label:
+            conclusion = "success"
+            status = "completed"
+        elif "cancel" in label:
+            conclusion = "cancelled"
+            status = "completed"
+        elif "fail" in label or "error" in label:
+            conclusion = "failure"
+            status = "completed"
+        else:
+            conclusion = None
+            status = "unknown"
+        run_id = run_id_match.group(1) if run_id_match else "unknown"
+        return {
+            "id": run_id,
+            "html_url": f"https://github.com/{repo_slug}/actions/runs/{run_id}" if run_id != "unknown" else f"https://github.com/{repo_slug}/actions?query={query}",
+            "status": status,
+            "conclusion": conclusion,
+            "display_title": f"GitHub Actions run for {short_sha}",
+            "event": "push",
+        }
+    return None
+
+
 run = None
+use_html_fallback = False
 for _ in range(12):
-    run = latest_run_for_head()
+    try:
+        run = latest_run_for_head() if not use_html_fallback else latest_run_for_head_from_html()
+    except urllib.error.HTTPError as error:
+        print(f"GitHub REST API returned HTTP {error.code}; falling back to public Actions HTML page.")
+        use_html_fallback = True
+        run = latest_run_for_head_from_html()
     if run:
         break
     time.sleep(5)
@@ -95,7 +149,22 @@ run_url = run["html_url"]
 print(f"Watching GitHub Actions run {run_id}: {run_url}")
 
 for _ in range(90):
-    data = github_get(f"https://api.github.com/repos/{repo_slug}/actions/runs/{run_id}")
+    if use_html_fallback or run_id == "unknown":
+        data = latest_run_for_head_from_html()
+        if not data:
+            print(f"GitHub Actions run for commit {head_sha} is not visible on the Actions page yet.")
+            time.sleep(10)
+            continue
+    else:
+        try:
+            data = github_get(f"https://api.github.com/repos/{repo_slug}/actions/runs/{run_id}")
+        except urllib.error.HTTPError as error:
+            print(f"GitHub REST API returned HTTP {error.code}; continuing via public Actions HTML page.")
+            use_html_fallback = True
+            data = latest_run_for_head_from_html()
+            if not data:
+                time.sleep(10)
+                continue
     status = data.get("status")
     conclusion = data.get("conclusion")
     title = data.get("display_title") or data.get("name") or "GitHub Actions run"
