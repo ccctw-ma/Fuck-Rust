@@ -12,9 +12,20 @@ pub use exercises::{
 pub use progress::{AttemptRecord, ProgressSnapshot, WeakLesson};
 
 pub fn recommend_next_exercise(progress: &ProgressSnapshot) -> Option<&'static Exercise> {
-    exercises()
-        .iter()
+    curriculum_ordered_exercises()
+        .into_iter()
         .find(|exercise| !progress.is_completed(exercise.id))
+}
+
+pub fn next_exercise_after(current_id: &str) -> Option<&'static Exercise> {
+    let ordered = curriculum_ordered_exercises();
+    let next = ordered
+        .iter()
+        .position(|exercise| exercise.id == current_id)
+        .and_then(|index| ordered.get(index + 1))
+        .or_else(|| ordered.first());
+
+    next.copied()
 }
 
 pub fn recommend_next_lesson(progress: &ProgressSnapshot) -> Option<&'static Lesson> {
@@ -71,6 +82,13 @@ pub fn lesson_progress(progress: &ProgressSnapshot) -> Vec<LessonProgress> {
         .collect()
 }
 
+fn curriculum_ordered_exercises() -> Vec<&'static Exercise> {
+    lessons()
+        .iter()
+        .flat_map(|lesson| exercises_for_lesson(lesson.id))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,6 +123,45 @@ mod tests {
 
         assert!(recommend_next_exercise(&progress).is_none());
         assert!(recommend_next_lesson(&progress).is_none());
+    }
+
+    #[test]
+    fn next_exercise_stays_within_current_lesson_before_advancing() {
+        let next = next_exercise_after("function-param-type").expect("next exercise exists");
+
+        assert_eq!(next.lesson_id, "data-functions");
+        assert_eq!(next.id, "tuple-index");
+    }
+
+    #[test]
+    fn next_exercise_uses_generated_drills_before_next_lesson() {
+        let next = next_exercise_after("advanced-data-tuple-trailing-comma")
+            .expect("generated drill follows core data-functions exercises");
+
+        assert_eq!(next.lesson_id, "data-functions");
+        assert!(next.id.starts_with("drill-data-functions-"));
+    }
+
+    #[test]
+    fn recommendations_follow_curriculum_lesson_order_with_drills() {
+        let mut progress = ProgressSnapshot::default();
+        for exercise in exercises_for_lesson("syntax-basics") {
+            progress.record_attempt(exercise.id, true, 10);
+        }
+        for exercise in exercises_for_lesson("control-flow") {
+            progress.record_attempt(exercise.id, true, 10);
+        }
+        for exercise in exercises_for_lesson("data-functions")
+            .into_iter()
+            .take_while(|exercise| exercise.id != "advanced-data-tuple-trailing-comma")
+        {
+            progress.record_attempt(exercise.id, true, 10);
+        }
+
+        let exercise = recommend_next_exercise(&progress).expect("next exercise exists");
+
+        assert_eq!(exercise.id, "advanced-data-tuple-trailing-comma");
+        assert_eq!(exercise.lesson_id, "data-functions");
     }
 
     #[test]

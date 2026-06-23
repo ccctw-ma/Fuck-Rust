@@ -1,6 +1,7 @@
 use learning_core::{
-    cards, exercise_by_id, exercises, exercises_for_lesson, lessons, recommend_next_exercise,
-    recommend_next_lesson, stage_summaries, Exercise, ExerciseKind, UserAnswer,
+    cards, exercise_by_id, exercises, exercises_for_lesson, lessons, next_exercise_after,
+    recommend_next_exercise, recommend_next_lesson, stage_summaries, Exercise, ExerciseKind,
+    UserAnswer,
 };
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -403,17 +404,11 @@ fn exercise_index_label(
 }
 
 fn next_route(current_id: &str) -> Route {
-    let all = exercises();
-    let next = all
-        .iter()
-        .position(|exercise| exercise.id == current_id)
-        .and_then(|index| all.get(index + 1))
-        .or_else(|| all.first());
-
-    next.map(|exercise| Route::Exercise {
-        id: exercise.id.to_owned(),
-    })
-    .unwrap_or(Route::Learn)
+    next_exercise_after(current_id)
+        .map(|exercise| Route::Exercise {
+            id: exercise.id.to_owned(),
+        })
+        .unwrap_or(Route::Learn)
 }
 
 fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
