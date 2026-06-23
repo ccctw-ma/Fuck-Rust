@@ -19,7 +19,9 @@
 
 ## 测试与质量
 - 保持 `learning_core` 行覆盖率大于 90%。
-- 每次迭代完成后优先运行 `./scripts/ship.sh "chore: describe this iteration"`，完成质量门禁、提交、推送、CI/CD 和 workflow 监听。
+- 硬约束：每次代码或产品迭代完成后，必须自动完成质量门禁、提交、推送和部署触发，不要停留在“本地已改完”等待用户再次确认。
+- 默认同步方式：优先运行 `./scripts/ship.sh "chore: describe this iteration"`，完成质量门禁、提交、推送、CI/CD 和 workflow 监听；提交信息必须准确描述本次迭代。
+- 如果 `ship.sh` 中的非核心辅助步骤因本地环境问题失败（例如当前环境的 `gh` 不是 GitHub CLI，导致 workflow 监听失败），但质量门禁、提交和推送已成功，必须向用户明确说明已完成同步以及跳过/失败的辅助步骤。
 - 常规验证命令：
   - `cargo fmt --all -- --check`
   - `cargo clippy --workspace --all-targets -- -D warnings`

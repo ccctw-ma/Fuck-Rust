@@ -1,6 +1,6 @@
 use learning_core::{
-    cards, exercise_by_id, exercises, lessons, recommend_next_exercise, recommend_next_lesson,
-    stage_summaries, Exercise, ExerciseKind, UserAnswer,
+    cards, exercise_by_id, exercises, exercises_for_lesson, lessons, recommend_next_exercise,
+    recommend_next_lesson, stage_summaries, Exercise, ExerciseKind, UserAnswer,
 };
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -146,6 +146,7 @@ pub fn exercise_page(props: &ExercisePageProps) -> Html {
         return html! { <NotFoundPage language={props.language} /> };
     };
     let language = props.language;
+    let lesson_position = exercise_lesson_position(exercise);
 
     let selected_choice = use_state(|| None::<usize>);
     let text_value = use_state(String::new);
@@ -213,6 +214,17 @@ pub fn exercise_page(props: &ExercisePageProps) -> Html {
                 <div class="exercise-meta">
                     <span class="eyebrow">{ exercise_kind_label(exercise.kind, language) }</span>
                     <span class="eyebrow level-pill">{ exercise_level_label(exercise, language) }</span>
+                    {
+                        if let Some((lesson_title_text, current, total)) = lesson_position {
+                            html! {
+                                <span class="eyebrow exercise-index-pill">
+                                    { exercise_index_label(language, lesson_title_text, current, total) }
+                                </span>
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
                 </div>
                 <h1 class="exercise-title">{ exercise_title(exercise, language) }</h1>
                 <p class="exercise-prompt">{ exercise_prompt(exercise, language) }</p>
@@ -363,6 +375,30 @@ fn draft_answer(
         ExerciseKind::FillBlank => Some(UserAnswer::Text(text_value.to_owned())),
         ExerciseKind::CodeOutput => Some(UserAnswer::Output(text_value.to_owned())),
         ExerciseKind::OrderSteps => Some(UserAnswer::Ordered(ordered_values.to_vec())),
+    }
+}
+
+fn exercise_lesson_position(exercise: &Exercise) -> Option<(&'static str, usize, usize)> {
+    let lesson = lessons()
+        .iter()
+        .find(|lesson| lesson.id == exercise.lesson_id)?;
+    let lesson_exercises = exercises_for_lesson(lesson.id);
+    let index = lesson_exercises
+        .iter()
+        .position(|item| item.id == exercise.id)?;
+
+    Some((lesson.title, index + 1, lesson_exercises.len()))
+}
+
+fn exercise_index_label(
+    language: Language,
+    lesson_title_text: &'static str,
+    current: usize,
+    total: usize,
+) -> String {
+    match language {
+        Language::Zh => format!("{lesson_title_text} · 第 {current}/{total} 题"),
+        Language::En => format!("{lesson_title_text} · {current}/{total}"),
     }
 }
 
