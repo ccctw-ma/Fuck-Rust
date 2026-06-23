@@ -202,6 +202,7 @@ pub fn exercise_page(props: &ExercisePageProps) -> Html {
 
     html! {
         <section class="exercise-panel">
+            { render_demo_for_exercise(exercise, language) }
             <article>
                 <div class="exercise-meta">
                     <span class="eyebrow">{ exercise_kind_label(exercise.kind, language) }</span>
@@ -250,7 +251,6 @@ pub fn exercise_page(props: &ExercisePageProps) -> Html {
                     }
                 }
             </article>
-            { render_demo_for_exercise(exercise, language) }
         </section>
     }
 }

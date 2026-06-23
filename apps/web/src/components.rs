@@ -103,7 +103,6 @@ pub fn side_rail(props: &SideRailProps) -> Html {
                     <span>{ toggle_label }</span>
                 </button>
             </div>
-            <span class="rail-collapsed-label">{ t(props.language, "path_short") }</span>
             <div id="learning-path-rail" class="rail-content" aria-hidden={(!props.is_open).to_string()}>
                 <p class="rail-caption">
                     { t(props.language, "rail_caption") }

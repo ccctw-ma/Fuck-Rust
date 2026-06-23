@@ -61,7 +61,7 @@ test.describe('Rust Ladder pages', () => {
     expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThanOrEqual(1);
   });
 
-  test('desktop learning category rail is full height, compact by default, and expandable', async ({ page }) => {
+  test('desktop learning category trigger floats without taking layout width', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/learn');
 
@@ -75,11 +75,9 @@ test.describe('Rust Ladder pages', () => {
     const collapsedBox = await rail.boundingBox();
     const panelBox = await page.locator('.panel.full').boundingBox();
     expect(collapsedBox).not.toBeNull();
-    expect(collapsedBox?.x ?? 99).toBeLessThanOrEqual(1);
-    expect(collapsedBox?.y ?? 99).toBeLessThanOrEqual(1);
-    expect(collapsedBox?.height ?? 0).toBeGreaterThanOrEqual(890);
-    expect(collapsedBox?.width ?? 999).toBeLessThanOrEqual(64);
-    expect((panelBox?.x ?? 0) - ((collapsedBox?.x ?? 0) + (collapsedBox?.width ?? 0))).toBeGreaterThanOrEqual(12);
+    expect(collapsedBox?.width ?? 999).toBeLessThanOrEqual(56);
+    expect(collapsedBox?.height ?? 999).toBeLessThanOrEqual(56);
+    expect(panelBox?.x ?? 0).toBeGreaterThan(12);
 
     await openButton.click();
 
@@ -92,7 +90,7 @@ test.describe('Rust Ladder pages', () => {
     await assertNoHorizontalOverflow(page);
   });
 
-  test('mobile learning category rail stays compact and opens as a left drawer', async ({ page }) => {
+  test('mobile learning category trigger is only a small floating button', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/learn');
 
@@ -104,11 +102,9 @@ test.describe('Rust Ladder pages', () => {
     const compactBox = await rail.boundingBox();
     const panelBox = await page.locator('.panel.full').boundingBox();
     expect(compactBox).not.toBeNull();
-    expect(compactBox?.x ?? 99).toBeLessThanOrEqual(1);
-    expect(compactBox?.y ?? 99).toBeLessThanOrEqual(1);
-    expect(compactBox?.height ?? 0).toBeGreaterThanOrEqual(836);
     expect(compactBox?.width ?? 999).toBeLessThanOrEqual(50);
-    expect((panelBox?.x ?? 0) - ((compactBox?.x ?? 0) + (compactBox?.width ?? 0))).toBeGreaterThanOrEqual(6);
+    expect(compactBox?.height ?? 999).toBeLessThanOrEqual(50);
+    expect(panelBox?.x ?? 0).toBeGreaterThanOrEqual(10);
 
     await page.getByRole('button', { name: /展开分类|Open categories/ }).click();
     await expect(rail).toHaveClass(/is-open/);
@@ -120,6 +116,17 @@ test.describe('Rust Ladder pages', () => {
     await expect(rail).toHaveClass(/is-collapsed/);
     await expect(railLink).not.toBeVisible();
     await assertNoHorizontalOverflow(page);
+  });
+
+  test('exercise teaches syntax before showing the question', async ({ page }) => {
+    await page.goto('/exercise/syntax-let-mut');
+
+    const guideBox = await page.locator('.demo-panel').boundingBox();
+    const questionBox = await page.locator('.exercise-panel > article').boundingBox();
+
+    expect(guideBox).not.toBeNull();
+    expect(questionBox).not.toBeNull();
+    expect(guideBox?.y ?? 999).toBeLessThan(questionBox?.y ?? 0);
   });
 
   test('lesson card action buttons keep breathing room from content', async ({ page }) => {
@@ -144,7 +151,7 @@ async function assertNoHorizontalOverflow(page: Page) {
 }
 
 async function assertNoVisibleOverlap(page: Page) {
-  const overlapCount = await page.locator('.topbar, .side-rail, .hero-card, .panel, .exercise-panel, .stat-card').evaluateAll((elements) => {
+  const overlapCount = await page.locator('.topbar, .side-rail.is-open, .hero-card, .panel, .exercise-panel, .stat-card').evaluateAll((elements) => {
     const boxes = elements
       .map((element) => element.getBoundingClientRect())
       .filter((box) => box.width > 0 && box.height > 0);
