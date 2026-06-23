@@ -87,6 +87,9 @@ test.describe('Rust Ladder pages', () => {
     await expect
       .poll(async () => (await rail.boundingBox())?.width ?? 0)
       .toBeGreaterThan((collapsedBox?.width ?? 0) * 3);
+    const desktopOpenBox = await rail.boundingBox();
+    expect(desktopOpenBox?.y ?? 0).toBeGreaterThan(20);
+    expect(desktopOpenBox?.height ?? 999).toBeLessThan(840);
     await assertNoHorizontalOverflow(page);
   });
 
@@ -111,6 +114,9 @@ test.describe('Rust Ladder pages', () => {
     await expect(railLink).toBeVisible();
     const openBox = await rail.boundingBox();
     expect(openBox?.width ?? 0).toBeLessThanOrEqual(310);
+    expect(openBox?.x ?? 99).toBeLessThanOrEqual(1);
+    expect(openBox?.y ?? 99).toBeLessThanOrEqual(1);
+    expect(openBox?.height ?? 0).toBeGreaterThanOrEqual(840);
 
     await page.getByRole('button', { name: /收起分类|Collapse categories/ }).click();
     await expect(rail).toHaveClass(/is-collapsed/);
