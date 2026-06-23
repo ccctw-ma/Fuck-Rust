@@ -40,50 +40,54 @@ github_repo_slug() {
 watch_github_actions_via_api() {
   local repo_slug="$1"
   local branch="$2"
+  local head_sha="$3"
 
-  python3 - "$repo_slug" "$branch" <<'PY'
+  python3 - "$repo_slug" "$branch" "$head_sha" <<'PY'
 import json
 import os
 import sys
 import time
-import urllib.error
 import urllib.request
 
 repo_slug = sys.argv[1]
 branch = sys.argv[2]
+head_sha = sys.argv[3]
 token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
-def github_get(url: str) -> dict:
+def github_get(url):
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "fuck-rust-ship-script",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     if token:
-        headers["Authorization"] = f"Bearer {token}"
+        headers["Authorization"] = "Bearer " + token
 
     request = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(request, timeout=20) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
-def latest_run() -> dict | None:
+def latest_run_for_head():
     url = f"https://api.github.com/repos/{repo_slug}/actions/runs?branch={branch}&per_page=1"
     data = github_get(url)
     runs = data.get("workflow_runs", [])
-    return runs[0] if runs else None
+    for item in runs:
+        if item.get("head_sha") == head_sha:
+            return item
+    return None
 
 
 run = None
 for _ in range(12):
-    run = latest_run()
+    run = latest_run_for_head()
     if run:
         break
     time.sleep(5)
 
 if not run:
-    print(f"No GitHub Actions run found for branch {branch} via GitHub REST API.")
+    print(f"No GitHub Actions run found for branch {branch} and commit {head_sha} via GitHub REST API.")
     sys.exit(1)
 
 run_id = run["id"]
@@ -159,6 +163,7 @@ else
 fi
 
 git push origin "$BRANCH"
+HEAD_SHA="$(git rev-parse HEAD)"
 
 if is_github_cli; then
   echo "Waiting for the newest GitHub Actions run on $BRANCH..."
@@ -173,7 +178,7 @@ if is_github_cli; then
 else
   if REPO_SLUG="$(github_repo_slug)"; then
     echo "GitHub CLI is unavailable or 'gh' is not GitHub CLI; falling back to GitHub REST API workflow monitoring."
-    watch_github_actions_via_api "$REPO_SLUG" "$BRANCH"
+    watch_github_actions_via_api "$REPO_SLUG" "$BRANCH" "$HEAD_SHA"
   else
     echo "GitHub CLI is unavailable or 'gh' is not GitHub CLI, and remote.origin.url is not a GitHub repository; workflow monitoring cannot continue."
     exit 1
