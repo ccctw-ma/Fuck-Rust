@@ -135,7 +135,14 @@ for _ in range(12):
     except urllib.error.HTTPError as error:
         print(f"GitHub REST API returned HTTP {error.code}; falling back to public Actions HTML page.")
         use_html_fallback = True
-        run = latest_run_for_head_from_html()
+        try:
+            run = latest_run_for_head_from_html()
+        except urllib.error.URLError as html_error:
+            print(f"GitHub Actions HTML fallback is temporarily unreachable: {html_error}. Retrying...")
+            run = None
+    except urllib.error.URLError as error:
+        print(f"GitHub Actions monitor request failed: {error}. Retrying...")
+        run = None
     if run:
         break
     time.sleep(5)
@@ -150,7 +157,12 @@ print(f"Watching GitHub Actions run {run_id}: {run_url}")
 
 for _ in range(90):
     if use_html_fallback or run_id == "unknown":
-        data = latest_run_for_head_from_html()
+        try:
+            data = latest_run_for_head_from_html()
+        except urllib.error.URLError as error:
+            print(f"GitHub Actions HTML fallback is temporarily unreachable: {error}. Retrying...")
+            time.sleep(10)
+            continue
         if not data:
             print(f"GitHub Actions run for commit {head_sha} is not visible on the Actions page yet.")
             time.sleep(10)
@@ -161,10 +173,19 @@ for _ in range(90):
         except urllib.error.HTTPError as error:
             print(f"GitHub REST API returned HTTP {error.code}; continuing via public Actions HTML page.")
             use_html_fallback = True
-            data = latest_run_for_head_from_html()
+            try:
+                data = latest_run_for_head_from_html()
+            except urllib.error.URLError as html_error:
+                print(f"GitHub Actions HTML fallback is temporarily unreachable: {html_error}. Retrying...")
+                time.sleep(10)
+                continue
             if not data:
                 time.sleep(10)
                 continue
+        except urllib.error.URLError as error:
+            print(f"GitHub Actions monitor request failed: {error}. Retrying...")
+            time.sleep(10)
+            continue
     status = data.get("status")
     conclusion = data.get("conclusion")
     title = data.get("display_title") or data.get("name") or "GitHub Actions run"
