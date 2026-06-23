@@ -25,7 +25,7 @@ pub fn header(props: &HeaderProps) -> Html {
         <header class="topbar">
             <Link<Route> to={Route::Home} classes="brand">
                 <span class="brand-mark">
-                    <img src="/public/logo.png" alt="Fuck Rust logo" />
+                    <img src="/public/logo.png?v=20260623-round" alt="Fuck Rust logo" />
                 </span>
                 <span>
                     <p class="brand-title">{ t(props.language, "brand_title") }</p>
