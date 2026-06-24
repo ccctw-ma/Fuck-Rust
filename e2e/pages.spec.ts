@@ -134,6 +134,15 @@ test.describe('Rust Ladder pages', () => {
     expect(guideBox?.y ?? 999).toBeLessThan(questionBox?.y ?? 0);
   });
 
+  test('exercise can navigate to the previous curriculum question', async ({ page }) => {
+    await page.goto('/exercise/tuple-index');
+
+    await page.getByRole('link', { name: /上一题|Previous/ }).click();
+
+    await expect(page).toHaveURL(/\/exercise\/function-param-type$/);
+    await expect(page.getByText(/第 5\/|5\//).first()).toBeVisible();
+  });
+
   test('lesson card action buttons keep breathing room from content', async ({ page }) => {
     await page.goto('/learn');
 

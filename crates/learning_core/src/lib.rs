@@ -28,6 +28,18 @@ pub fn next_exercise_after(current_id: &str) -> Option<&'static Exercise> {
     next.copied()
 }
 
+pub fn previous_exercise_before(current_id: &str) -> Option<&'static Exercise> {
+    let ordered = curriculum_ordered_exercises();
+    let previous = ordered
+        .iter()
+        .position(|exercise| exercise.id == current_id)
+        .and_then(|index| index.checked_sub(1))
+        .and_then(|index| ordered.get(index))
+        .or_else(|| ordered.last());
+
+    previous.copied()
+}
+
 pub fn recommend_next_lesson(progress: &ProgressSnapshot) -> Option<&'static Lesson> {
     let next = recommend_next_exercise(progress)?;
     lessons().iter().find(|lesson| lesson.id == next.lesson_id)
@@ -140,6 +152,25 @@ mod tests {
 
         assert_eq!(next.lesson_id, "data-functions");
         assert!(next.id.starts_with("drill-data-functions-"));
+    }
+
+    #[test]
+    fn previous_exercise_stays_in_curriculum_order() {
+        let previous = previous_exercise_before("tuple-index").expect("previous exercise exists");
+
+        assert_eq!(previous.lesson_id, "data-functions");
+        assert_eq!(previous.id, "function-param-type");
+    }
+
+    #[test]
+    fn previous_exercise_wraps_from_first_to_last() {
+        let previous =
+            previous_exercise_before("syntax-let-mut").expect("previous exercise exists");
+
+        assert_eq!(
+            previous.id,
+            curriculum_ordered_exercises().last().unwrap().id
+        );
     }
 
     #[test]

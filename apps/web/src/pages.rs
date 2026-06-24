@@ -1,7 +1,7 @@
 use learning_core::{
     cards, exercise_by_id, exercises, exercises_for_lesson, lessons, next_exercise_after,
-    recommend_next_exercise, recommend_next_lesson, stage_summaries, Exercise, ExerciseKind,
-    UserAnswer,
+    previous_exercise_before, recommend_next_exercise, recommend_next_lesson, stage_summaries,
+    Exercise, ExerciseKind, UserAnswer,
 };
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -247,6 +247,7 @@ pub fn exercise_page(props: &ExercisePageProps) -> Html {
                 }) }
                 <div class="button-row">
                     <button class="primary-button" type="button" onclick={on_submit}>{ t(language, "submit") }</button>
+                    <Link<Route> to={previous_route(exercise.id)} classes="ghost-button">{ t(language, "previous_exercise") }</Link<Route>>
                     <Link<Route> to={next_route(exercise.id)} classes="ghost-button">{ t(language, "next_exercise") }</Link<Route>>
                 </div>
                 {
@@ -542,6 +543,14 @@ fn exercise_index_label(
 
 fn next_route(current_id: &str) -> Route {
     next_exercise_after(current_id)
+        .map(|exercise| Route::Exercise {
+            id: exercise.id.to_owned(),
+        })
+        .unwrap_or(Route::Learn)
+}
+
+fn previous_route(current_id: &str) -> Route {
+    previous_exercise_before(current_id)
         .map(|exercise| Route::Exercise {
             id: exercise.id.to_owned(),
         })
