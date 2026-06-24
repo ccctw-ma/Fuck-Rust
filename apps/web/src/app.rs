@@ -1,4 +1,4 @@
-use learning_core::{exercises, lesson_progress, ProgressSnapshot};
+use learning_core::{exercise_by_id, exercises, lesson_progress, ProgressSnapshot};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{closure::Closure, JsCast};
 use yew::prelude::*;
@@ -95,6 +95,8 @@ fn app_shell() -> Html {
     let total = exercises().len();
     let progress_rate = progress.completion_rate(total);
     let lessons = lesson_progress(&progress);
+    let route = use_route::<Route>();
+    let active_lesson_id = route.as_ref().and_then(active_lesson_id_for_route);
     let active_language = *language;
     let active_theme = *theme;
     let on_language_toggle = {
@@ -155,6 +157,7 @@ fn app_shell() -> Html {
                         lessons={lessons}
                         language={active_language}
                         is_open={*rail_open}
+                        active_lesson_id={active_lesson_id}
                         on_toggle={on_rail_toggle}
                     />
                     <main class="main-stack">
@@ -163,6 +166,13 @@ fn app_shell() -> Html {
                 </div>
             </div>
         </div>
+    }
+}
+
+fn active_lesson_id_for_route(route: &Route) -> Option<&'static str> {
+    match route {
+        Route::Exercise { id } => exercise_by_id(id).map(|exercise| exercise.lesson_id),
+        _ => None,
     }
 }
 

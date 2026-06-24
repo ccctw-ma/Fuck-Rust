@@ -70,6 +70,7 @@ pub struct SideRailProps {
     pub lessons: Vec<LessonProgress>,
     pub language: Language,
     pub is_open: bool,
+    pub active_lesson_id: Option<&'static str>,
     pub on_toggle: Callback<MouseEvent>,
 }
 
@@ -111,19 +112,31 @@ pub fn side_rail(props: &SideRailProps) -> Html {
                 </div>
                 <p class="rail-caption">{ format!("{} {percent}%", t(props.language, "total_progress")) }</p>
                 <div class="rail-list">
-                    { for props.lessons.iter().map(|lesson| render_lesson(lesson, props.language)) }
+                    { for props.lessons.iter().map(|lesson| render_lesson(lesson, props.language, props.active_lesson_id)) }
                 </div>
             </div>
         </aside>
     }
 }
 
-fn render_lesson(item: &LessonProgress, language: Language) -> Html {
+fn render_lesson(
+    item: &LessonProgress,
+    language: Language,
+    active_lesson_id: Option<&'static str>,
+) -> Html {
     let done = item.completed == item.total && item.total > 0;
+    let is_active = active_lesson_id == Some(item.lesson.id);
     let dot_class = if done {
         "status-dot done"
+    } else if is_active {
+        "status-dot active"
     } else {
         "status-dot"
+    };
+    let item_class = if is_active {
+        "rail-item active"
+    } else {
+        "rail-item"
     };
     let first_exercise = learning_core::exercises_for_lesson(item.lesson.id)
         .first()
@@ -132,7 +145,7 @@ fn render_lesson(item: &LessonProgress, language: Language) -> Html {
         .to_owned();
 
     html! {
-        <Link<Route> to={Route::Exercise { id: first_exercise }} classes="rail-item">
+        <Link<Route> to={Route::Exercise { id: first_exercise }} classes={item_class}>
             <span class={dot_class}></span>
             <span>
                 <span class="rail-item-title">{ crate::i18n::lesson_title(item.lesson, language) }</span>

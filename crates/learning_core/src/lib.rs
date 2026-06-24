@@ -209,7 +209,7 @@ mod tests {
 
         assert_eq!(summaries.len(), Stage::all().len());
         assert_eq!(foundation.lesson_count, 3);
-        assert_eq!(foundation.exercise_count, 78);
+        assert_eq!(foundation.exercise_count, 76);
         assert_eq!(foundation.completed_count, 2);
     }
 
@@ -223,9 +223,9 @@ mod tests {
             .find(|item| item.lesson.id == "borrowing")
             .expect("borrowing lesson progress");
 
-        assert_eq!(borrowing.total, 26);
+        assert_eq!(borrowing.total, 25);
         assert_eq!(borrowing.completed, 1);
         assert!(!borrowing.locked);
-        assert_eq!(borrowing.rate(), 1.0 / 26.0);
+        assert_eq!(borrowing.rate(), 1.0 / 25.0);
     }
 }

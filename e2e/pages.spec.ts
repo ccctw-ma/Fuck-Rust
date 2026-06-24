@@ -143,6 +143,15 @@ test.describe('Rust Ladder pages', () => {
     await expect(page.getByText(/第 5\/|5\//).first()).toBeVisible();
   });
 
+  test('exercise route highlights the active lesson in the learning rail', async ({ page }) => {
+    await page.goto('/exercise/tuple-index');
+
+    const activeRailItem = page.locator('.rail-item.active');
+    await expect(activeRailItem).toBeVisible();
+    await expect(activeRailItem).toContainText(/数据类型|Data types/);
+    await expect(activeRailItem.locator('.status-dot.active')).toBeVisible();
+  });
+
   test('lesson card action buttons keep breathing room from content', async ({ page }) => {
     await page.goto('/learn');
 

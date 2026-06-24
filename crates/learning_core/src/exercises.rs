@@ -157,9 +157,25 @@ pub fn exercise_by_id(id: &str) -> Option<&'static Exercise> {
 }
 
 pub fn exercises_for_lesson(lesson_id: &str) -> Vec<&'static Exercise> {
-    exercises()
+    let mut lesson_exercises: Vec<(usize, &Exercise)> = exercises()
         .iter()
-        .filter(|exercise| exercise.lesson_id == lesson_id)
+        .enumerate()
+        .filter(|(_, exercise)| exercise.lesson_id == lesson_id)
+        .collect();
+    lesson_exercises.sort_by_key(|(index, exercise)| (exercise.level(), *index));
+
+    let mut concept_keys = Vec::new();
+    lesson_exercises
+        .into_iter()
+        .filter_map(|(_, exercise)| {
+            let concept_key = exercise_concept_key(exercise);
+            if concept_keys.iter().any(|seen| seen == &concept_key) {
+                None
+            } else {
+                concept_keys.push(concept_key);
+                Some(exercise)
+            }
+        })
         .collect()
 }
 
@@ -274,6 +290,43 @@ fn push_drill_group(
             hint,
         });
     }
+}
+
+fn exercise_concept_key(exercise: &Exercise) -> String {
+    if let Some(key) = known_concept_key(exercise.id) {
+        return key.to_owned();
+    }
+
+    let title = exercise
+        .title
+        .strip_prefix("基础训练：")
+        .or_else(|| exercise.title.strip_prefix("进阶训练："))
+        .or_else(|| exercise.title.strip_prefix("挑战训练："))
+        .or_else(|| exercise.title.strip_prefix("高阶："))
+        .unwrap_or(exercise.title);
+
+    normalize_concept(title)
+}
+
+fn known_concept_key(id: &str) -> Option<&'static str> {
+    match id {
+        "syntax-shadowing" | "syntax-shadow-mutability" => Some("syntax-shadowing"),
+        "array-type" => Some("array-type-length"),
+        "advanced-data-tuple-trailing-comma" => Some("single-element-tuple"),
+        _ => None,
+    }
+}
+
+fn normalize_concept(input: &str) -> String {
+    input
+        .chars()
+        .filter(|character| character.is_alphanumeric() || is_cjk(*character))
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn is_cjk(character: char) -> bool {
+    ('\u{4e00}'..='\u{9fff}').contains(&character)
 }
 
 fn leak(value: String) -> &'static str {
@@ -2944,12 +2997,12 @@ const CORE_EXERCISES: &[Exercise] = &[
         lesson_id: "structs-enums",
         title: "if let 匹配枚举变体",
         kind: ExerciseKind::FillBlank,
-        prompt: "只关心 Quit 变体时，空白处应填什么？",
-        code: "if let ____ = msg {\n    println!(\"quit\");\n}",
+        prompt: "已知 `msg` 的类型是 `Message`，只关心 Quit 变体时，空白处应填什么？",
+        code: "enum Message { Quit, Move { x: i32, y: i32 } }\nlet msg = Message::Quit;\n\nif let ____ = msg {\n    println!(\"quit\");\n}",
         options: &[],
         answer: Answer::Text("Message::Quit"),
-        explanation: "`if let Message::Quit = msg` 只在 msg 是 Quit 变体时执行分支。",
-        hint: "只关心一个枚举变体时适合 if let。",
+        explanation: "题干先定义了 `enum Message { Quit, ... }`，所以枚举变体需要写成 `Message::Quit`；`if let Message::Quit = msg` 只在 msg 是 Quit 变体时执行分支。",
+        hint: "先看 `msg` 的类型定义：变体 Quit 属于 Message 这个枚举。",
     },
     Exercise {
         id: "method-takes-self",
@@ -3676,15 +3729,11 @@ mod tests {
                 "syntax-println-placeholder",
                 "syntax-semicolon-unit",
                 "syntax-const-binding",
-                "syntax-shadow-mutability",
                 "syntax-block-scope",
                 "syntax-type-inference",
                 "syntax-mut-reassign",
                 "syntax-const-uppercase",
                 "syntax-expression-parentheses",
-                "advanced-syntax-numeric-suffix",
-                "advanced-syntax-never-semicolon",
-                "advanced-syntax-macro-vs-function",
                 "drill-syntax-basics-basic-01",
                 "drill-syntax-basics-basic-02",
                 "drill-syntax-basics-basic-03",
@@ -3693,6 +3742,9 @@ mod tests {
                 "drill-syntax-basics-practice-02",
                 "drill-syntax-basics-practice-03",
                 "drill-syntax-basics-practice-04",
+                "advanced-syntax-numeric-suffix",
+                "advanced-syntax-never-semicolon",
+                "advanced-syntax-macro-vs-function",
                 "drill-syntax-basics-challenge-01",
                 "drill-syntax-basics-challenge-02",
                 "drill-syntax-basics-challenge-03",
@@ -3712,7 +3764,7 @@ mod tests {
         for lesson in lessons() {
             let lesson_exercises = exercises_for_lesson(lesson.id);
             assert!(
-                lesson_exercises.len() >= 26,
+                lesson_exercises.len() >= 25,
                 "{} has too few exercises",
                 lesson.id
             );
@@ -3734,7 +3786,37 @@ mod tests {
                 .iter()
                 .filter(|exercise| exercise.id.starts_with("drill-"))
                 .count();
-            assert_eq!(drill_count, 11, "{} drill count changed", lesson.id);
+            assert!(
+                drill_count >= 10,
+                "{} has too few visible drills after dedupe",
+                lesson.id
+            );
+        }
+    }
+
+    #[test]
+    fn lesson_exercises_are_deduped_and_progressive() {
+        for lesson in lessons() {
+            let mut seen = Vec::new();
+            let mut last_level = 0;
+            for exercise in exercises_for_lesson(lesson.id) {
+                let concept = exercise_concept_key(exercise);
+                assert!(
+                    !seen.contains(&concept),
+                    "{} repeats concept {}",
+                    lesson.id,
+                    concept
+                );
+                seen.push(concept);
+
+                assert!(
+                    exercise.level() >= last_level,
+                    "{} difficulty regressed at {}",
+                    lesson.id,
+                    exercise.id
+                );
+                last_level = exercise.level();
+            }
         }
     }
 

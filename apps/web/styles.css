@@ -409,6 +409,14 @@ button {
   transform: translateX(2px);
 }
 
+.rail-item.active {
+  border-color: color-mix(in srgb, var(--mint) 58%, var(--line));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--mint) 16%, transparent), transparent 72%),
+    color-mix(in srgb, var(--panel-strong) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mint) 18%, transparent);
+}
+
 .status-dot {
   width: 3px;
   min-height: 38px;
@@ -422,6 +430,11 @@ button {
 .status-dot.done {
   background: var(--mint);
   box-shadow: 0 0 18px color-mix(in srgb, var(--mint) 34%, transparent);
+}
+
+.status-dot.active {
+  background: linear-gradient(180deg, var(--mint), var(--amber));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--mint) 42%, transparent);
 }
 
 .rail-item-title {
