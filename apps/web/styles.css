@@ -787,7 +787,7 @@ button {
 
 .exercise-panel {
   display: grid;
-  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   padding: 24px;
   border-radius: 34px;
