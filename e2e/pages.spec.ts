@@ -53,6 +53,18 @@ test.describe('Rust Ladder pages', () => {
     await expect(page.getByRole('link', { name: 'Rust Book' })).toBeVisible();
   });
 
+  test('lesson exercise includes a complete pre-question mental model', async ({ page }) => {
+    await page.goto('/exercise/enum-if-let-method');
+
+    const primer = page.locator('.primer-panel');
+    await expect(page.getByText('答题前先建立知识框架')).toBeVisible();
+    await expect(primer.getByText('核心概念模型')).toBeVisible();
+    await expect(primer.getByText(/Message::Quit/)).toBeVisible();
+    await expect(primer.getByText('看题时抓这些位置')).toBeVisible();
+    await expect(primer.getByText('下笔前检查')).toBeVisible();
+    await expect(page.getByText(/enum Message \{ Quit/)).toBeVisible();
+  });
+
   test('brand icon is rendered as a square mark', async ({ page }) => {
     await page.goto('/');
     const box = await page.locator('.brand-mark').boundingBox();
