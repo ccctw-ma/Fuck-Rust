@@ -33,7 +33,6 @@ pub fn t(language: Language, key: &str) -> &'static str {
     match language {
         Language::Zh => match key {
             "brand_title" => "Rust 阶梯学习站",
-            "brand_subtitle" => "100% Rust 前端 · WASM",
             "home" => "首页",
             "learn" => "课程路径",
             "cards" => "知识卡片",
@@ -99,7 +98,6 @@ pub fn t(language: Language, key: &str) -> &'static str {
         },
         Language::En => match key {
             "brand_title" => "Rust Ladder",
-            "brand_subtitle" => "100% Rust Frontend · WASM",
             "home" => "Home",
             "learn" => "Path",
             "cards" => "Cards",

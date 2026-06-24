@@ -29,7 +29,6 @@ pub fn header(props: &HeaderProps) -> Html {
                 </span>
                 <span>
                     <p class="brand-title">{ t(props.language, "brand_title") }</p>
-                    <p class="brand-subtitle">{ t(props.language, "brand_subtitle") }</p>
                 </span>
             </Link<Route>>
             <nav class="nav" aria-label="主导航">
