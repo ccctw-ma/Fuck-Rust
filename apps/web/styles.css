@@ -956,7 +956,7 @@ button {
 
 .primer-panel {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   padding: 18px;
   border: 1px solid color-mix(in srgb, var(--mint) 30%, transparent);
   border-radius: var(--radius-lg);
@@ -969,24 +969,42 @@ button {
   margin: 0;
   color: var(--text);
   font-size: 13px;
-  line-height: 1.75;
+  line-height: 1.65;
 }
 
-.primer-grid {
+.primer-module {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.primer-card {
-  border-color: color-mix(in srgb, var(--mint) 20%, transparent);
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--mint) 20%, transparent);
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--panel-strong) 52%, transparent);
 }
 
-.checklist-card {
+.primer-module-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.26fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+}
+
+.primer-module-row + .primer-module-row {
+  border-top: 1px solid color-mix(in srgb, var(--mint) 14%, transparent);
+}
+
+.primer-book-row {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--amber) 8%, transparent), transparent 75%),
+    linear-gradient(90deg, color-mix(in srgb, var(--mint) 8%, transparent), transparent 62%),
     color-mix(in srgb, var(--panel-strong) 48%, transparent);
+}
+
+.primer-answer-row {
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+}
+
+.primer-copy-stack {
+  display: grid;
+  gap: 8px;
 }
 
 .demo-heading {
@@ -1237,7 +1255,7 @@ button {
     border-radius: 24px;
   }
 
-  .primer-grid {
+  .primer-module-row {
     grid-template-columns: 1fr;
   }
 

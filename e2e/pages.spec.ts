@@ -57,11 +57,11 @@ test.describe('Rust Ladder pages', () => {
     await page.goto('/exercise/enum-if-let-method');
 
     const primer = page.locator('.primer-panel');
-    await expect(page.getByText('答题前先建立知识框架')).toBeVisible();
-    await expect(primer.getByText('核心概念模型')).toBeVisible();
+    await expect(page.getByText('答题前知识模块')).toBeVisible();
+    await expect(primer.getByText('Rust Book 知识点')).toBeVisible();
     await expect(primer.getByText(/Message::Quit/)).toBeVisible();
-    await expect(primer.getByText('看题时抓这些位置')).toBeVisible();
-    await expect(primer.getByText('下笔前检查')).toBeVisible();
+    await expect(primer.getByText('这道题考什么')).toBeVisible();
+    await expect(primer.getByText('答题提示')).toBeVisible();
     await expect(page.getByText(/enum Message \{ Quit/)).toBeVisible();
   });
 

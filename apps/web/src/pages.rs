@@ -1,7 +1,7 @@
 use learning_core::{
     cards, exercise_by_id, exercises, exercises_for_lesson, lessons, next_exercise_after,
     previous_exercise_before, recommend_next_exercise, recommend_next_lesson, stage_summaries,
-    Exercise, ExerciseDifficulty, ExerciseKind, Lesson, UserAnswer,
+    Exercise, ExerciseKind, Lesson, UserAnswer,
 };
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -584,9 +584,9 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
 }
 
 fn render_pre_question_guide(exercise: &Exercise, lesson: &Lesson, language: Language) -> Html {
-    let mental_model = lesson_mental_model(lesson, language);
-    let anchors = exercise_syntax_anchors(exercise, language);
-    let checklist = exercise_pre_answer_checklist(exercise, language);
+    let book_points = lesson_mental_model(lesson, language);
+    let exercise_link = exercise_book_link(exercise, lesson, language);
+    let answer_hint = exercise_answer_hint(exercise, language);
 
     html! {
         <aside class="primer-panel" aria-label={t(language, "primer_title")}>
@@ -595,23 +595,21 @@ fn render_pre_question_guide(exercise: &Exercise, lesson: &Lesson, language: Lan
                 <span class="pill strong">{ exercise_level_label(exercise, language) }</span>
             </div>
             <p class="primer-lead">{ exercise_focus_copy(exercise, lesson, language) }</p>
-            <div class="primer-grid">
-                <div class="guide-list primer-card">
-                    <p class="guide-title">{ t(language, "concept_model") }</p>
-                    { for mental_model.into_iter().map(|copy| html! { <p class="guide-copy">{ copy }</p> }) }
+            <div class="primer-module">
+                <div class="primer-module-row primer-book-row">
+                    <p class="guide-title">{ t(language, "book_points") }</p>
+                    <div class="primer-copy-stack">
+                        { for book_points.into_iter().take(2).map(|copy| html! { <p class="guide-copy">{ copy }</p> }) }
+                    </div>
                 </div>
-                <div class="guide-list primer-card">
-                    <p class="guide-title">{ t(language, "syntax_anchor") }</p>
-                    { for anchors.into_iter().enumerate().map(|(index, copy)| html! {
-                        <p class="guide-step"><span>{ format!("{:02}", index + 1) }</span>{ copy }</p>
-                    }) }
+                <div class="primer-module-row">
+                    <p class="guide-title">{ t(language, "exercise_link") }</p>
+                    <p class="guide-copy">{ exercise_link }</p>
                 </div>
-            </div>
-            <div class="guide-list primer-card checklist-card">
-                <p class="guide-title">{ t(language, "before_answer") }</p>
-                { for checklist.into_iter().enumerate().map(|(index, copy)| html! {
-                    <p class="guide-step"><span>{ format!("{:02}", index + 1) }</span>{ copy }</p>
-                }) }
+                <div class="primer-module-row primer-answer-row">
+                    <p class="guide-title">{ t(language, "answer_hint") }</p>
+                    <p class="guide-copy">{ answer_hint }</p>
+                </div>
             </div>
         </aside>
     }
@@ -620,12 +618,12 @@ fn render_pre_question_guide(exercise: &Exercise, lesson: &Lesson, language: Lan
 fn exercise_focus_copy(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {
     match language {
         Language::Zh => format!(
-            "这道题属于「{}」模块，当前聚焦「{}」。先把下面三块读完，再看题干，目标是知道题目在考哪条 Rust 规则，而不是凭感觉猜答案。",
+            "在「{}」模块里，先抓 Rust Book 的核心规则，再对应到「{}」这题的代码证据；目标是少读概念、直接知道该看哪里。",
             lesson_title(lesson, language),
             exercise_title(exercise, language)
         ),
         Language::En => format!(
-            "This exercise belongs to '{}', focusing on '{}'. Read these three blocks first so you know which Rust rule is being tested before answering.",
+            "In '{}', start with the Rust Book rule, then connect it to the code evidence in '{}'. Keep it short: know where to look before answering.",
             lesson_title(lesson, language),
             exercise_title(exercise, language)
         ),
@@ -701,82 +699,55 @@ fn lesson_mental_model(lesson: &Lesson, language: Language) -> Vec<String> {
     }
 }
 
-fn exercise_syntax_anchors(exercise: &Exercise, language: Language) -> Vec<String> {
-    match (exercise.kind, language) {
-        (ExerciseKind::FillBlank, Language::Zh) => vec![
-            "先看空白左边：`:` 后通常填类型；`let` 左侧通常填模式；`.` 后通常填字段或方法名。".to_owned(),
-            "再看空白右边：`=>` 前是模式或 guard；函数参数列表里是签名位置；表达式内部则要能产出值。".to_owned(),
-            "把答案代回整行代码，从左到右读一遍，确认它是合法 Rust 语法。".to_owned(),
-        ],
-        (ExerciseKind::SingleChoice, Language::Zh) => vec![
-            "每个选项都必须能被代码中的具体证据支持：类型、所有权、借用、分支覆盖、返回值或 API 行为。".to_owned(),
-            "先排除“总是自动”“完全由运行时决定”“一定复制”这类绝对化说法。".to_owned(),
-            "正确选项不仅词面熟悉，还要能解释题干中的这段代码为什么成立或为什么失败。".to_owned(),
-        ],
-        (ExerciseKind::CodeOutput, Language::Zh) => vec![
-            "从真正执行的语句开始推导，遇到函数调用、block、if、match 时先算出它们产出的值。".to_owned(),
-            "特别检查最后一行有没有分号：无分号表达式产生值，有分号语句通常产生 `()`。".to_owned(),
-            "输出答案要精确到空格、换行、引号内文本和调试格式。".to_owned(),
-        ],
-        (ExerciseKind::OrderSteps, Language::Zh) => vec![
-            "先找到创建 owner、集合、引用或迭代器的步骤；后面的步骤不能使用还没产生的变量。".to_owned(),
-            "再按依赖关系排序：借用必须发生在 owner 创建后，消费动作通常发生在转换链或修改动作之后。".to_owned(),
-            "最后检查是否有使用后再 move、可变借用和不可变借用重叠这类顺序问题。".to_owned(),
-        ],
-        (ExerciseKind::FillBlank, Language::En) => vec![
-            "Look left of the blank: after `:` means a type; left side of `let` means a pattern; after `.` means a field or method.".to_owned(),
-            "Look right of the blank: before `=>` is a pattern or guard; in parameters it is signature syntax; inside expressions it must produce a value.".to_owned(),
-            "Paste the answer back into the whole line and read it as valid Rust syntax.".to_owned(),
-        ],
-        (ExerciseKind::SingleChoice, Language::En) => vec![
-            "Every option must be supported by concrete evidence: types, ownership, borrowing, branch coverage, return values, or API behavior.".to_owned(),
-            "Eliminate absolute claims such as 'always automatic' or 'purely runtime'.".to_owned(),
-            "The correct option must explain this exact snippet, not just contain a familiar keyword.".to_owned(),
-        ],
-        (ExerciseKind::CodeOutput, Language::En) => vec![
-            "Start from the executed statement and evaluate calls, blocks, if, and match expressions before substituting values.".to_owned(),
-            "Check semicolons carefully: final expressions produce values; statements usually produce `()`.".to_owned(),
-            "Output answers must match spaces, newlines, literal text, and debug formatting exactly.".to_owned(),
-        ],
-        (ExerciseKind::OrderSteps, Language::En) => vec![
-            "Find the step that creates the owner, collection, reference, or iterator first.".to_owned(),
-            "Order by dependencies: borrowing comes after owner creation, and consuming actions come after transformations or mutations.".to_owned(),
-            "Finally check for use-after-move or overlapping mutable and immutable borrows.".to_owned(),
-        ],
+fn exercise_book_link(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {
+    match (exercise.id, language) {
+        ("syntax-let-mut", Language::Zh) => "本题空白在 `let ____ count` 的绑定位置。Rust Book 说绑定默认不可变，所以后面的 `count += 1` 要合法，绑定处必须声明可变。".to_owned(),
+        ("syntax-let-mut", Language::En) => "The blank sits in `let ____ count`. The Book says bindings are immutable by default, so `count += 1` only works if the binding is marked mutable.".to_owned(),
+        ("enum-if-let-method", Language::Zh) => "题干给出 `msg` 的类型是 `Message`，`Quit` 是这个 enum 的变体。匹配时要写完整路径 `Message::Quit`，不是单独写 `Quit`。".to_owned(),
+        ("enum-if-let-method", Language::En) => "The prompt says `msg` has type `Message`, and `Quit` is a variant of that enum. Match it with the full path `Message::Quit`, not bare `Quit`.".to_owned(),
+        _ => match (lesson.id, exercise.kind, language) {
+            ("syntax-basics", _, Language::Zh) => "对应到本题，先判断空白或输出来自绑定、表达式、语句还是模式位置；Rust 的位置规则比“词看起来像什么”更重要。".to_owned(),
+            ("control-flow", _, Language::Zh) => "对应到本题，盯住 `if`、`match` 或 `if let` 的条件和分支：Rust Book 要求分支覆盖明确，并且作为表达式时产出同一种类型。".to_owned(),
+            ("data-functions", _, Language::Zh) => "对应到本题，把类型标注、函数参数、`->` 返回类型和最后一行尾表达式圈出来；答案必须和这些签名证据一致。".to_owned(),
+            ("ownership", _, Language::Zh) => "对应到本题，先标出哪个变量拥有值，再看题目有没有赋值、传参或函数返回导致所有权转移。".to_owned(),
+            ("slices", _, Language::Zh) => "对应到本题，切片答案要能说明它借用了原数据的哪一段；不要把切片当成新分配出来的集合。".to_owned(),
+            ("borrowing", _, Language::Zh) => "对应到本题，先分清这里需要读借用还是写借用，再检查同一时间有没有多个读或一个独占写的冲突。".to_owned(),
+            ("structs-enums", _, Language::Zh) => "对应到本题，先看题干是在字段、方法接收者还是 enum 变体路径上设问；答案要贴合这个具体语法位置。".to_owned(),
+            ("result-option", _, Language::Zh) => "对应到本题，先确认代码处理的是 `Some/None` 还是 `Ok/Err`；`?` 题还要看失败时会不会提前返回。".to_owned(),
+            ("collections", _, Language::Zh) => "对应到本题，看集合操作是在读、插入、更新还是转移 key/value 所有权；不同 API 对 `mut` 和 move 的要求不同。".to_owned(),
+            ("iterators-traits", _, Language::Zh) => "对应到本题，先判断迭代器链只是描述步骤，还是已经被 `collect`、`sum` 或 `for` 消费执行。".to_owned(),
+            ("generics-traits", _, Language::Zh) => "对应到本题，找出函数体实际用到了什么能力；泛型参数只有写出对应 trait bound 才能使用这些能力。".to_owned(),
+            ("concurrency", _, Language::Zh) => "对应到本题，先看值是否要跨线程或跨 channel 移动；线程闭包常用 `move` 是为了拿到可安全使用的所有权。".to_owned(),
+            ("syntax-basics", _, Language::En) => "For this exercise, first decide whether the blank or output comes from a binding, expression, statement, or pattern position. Rust's position rules matter more than familiar words.".to_owned(),
+            ("control-flow", _, Language::En) => "For this exercise, inspect the `if`, `match`, or `if let` condition and arms. The Book expects explicit coverage and one output type when used as an expression.".to_owned(),
+            ("data-functions", _, Language::En) => "For this exercise, circle the type annotation, parameters, `->` return type, and final tail expression. The answer must match those signature clues.".to_owned(),
+            ("ownership", _, Language::En) => "For this exercise, mark which variable owns the value, then check whether assignment, parameters, or returns move that ownership.".to_owned(),
+            ("slices", _, Language::En) => "For this exercise, explain which part of the original data the slice borrows. Do not treat a slice as a newly allocated collection.".to_owned(),
+            ("borrowing", _, Language::En) => "For this exercise, decide whether the code needs read borrowing or write borrowing, then check for conflicts between many readers and one exclusive writer.".to_owned(),
+            ("structs-enums", _, Language::En) => "For this exercise, identify whether the prompt is about fields, method receivers, or enum variant paths. The answer must fit that exact syntax position.".to_owned(),
+            ("result-option", _, Language::En) => "For this exercise, confirm whether the code handles `Some/None` or `Ok/Err`; with `?`, also check whether failure returns early.".to_owned(),
+            ("collections", _, Language::En) => "For this exercise, check whether the collection operation reads, inserts, updates, or moves key/value ownership. Each API has different `mut` and move rules.".to_owned(),
+            ("iterators-traits", _, Language::En) => "For this exercise, decide whether the iterator chain only describes work or is consumed by `collect`, `sum`, or `for`.".to_owned(),
+            ("generics-traits", _, Language::En) => "For this exercise, find the capability used inside the function body. A generic parameter can only use it when the matching trait bound is declared.".to_owned(),
+            ("concurrency", _, Language::En) => "For this exercise, check whether the value crosses a thread or channel boundary. Thread closures often use `move` to own data safely.".to_owned(),
+            _ => match language {
+                Language::Zh => "对应到本题，只保留能被题干代码直接证明的规则；如果一句话解释不出“因为哪里，所以答案是什么”，先回题干找证据。".to_owned(),
+                Language::En => "For this exercise, keep only rules proven by the prompt code. If you cannot say 'because this code shows X, the answer is Y', inspect the prompt again.".to_owned(),
+            },
+        },
     }
 }
 
-fn exercise_pre_answer_checklist(exercise: &Exercise, language: Language) -> Vec<String> {
-    let difficulty = match (exercise.difficulty(), language) {
-        (ExerciseDifficulty::Basic, Language::Zh) => "基础题：优先确认一个核心语法点，不要引入过多后续规则。",
-        (ExerciseDifficulty::Practice, Language::Zh) => "进阶题：通常同时考两个相关规则，需要把两条证据都对上。",
-        (ExerciseDifficulty::Challenge, Language::Zh) => "挑战题：常把相似概念放在一起迷惑你，要逐项核对边界条件。",
-        (ExerciseDifficulty::Basic, Language::En) => "Basic: focus on one core syntax rule before importing later concepts.",
-        (ExerciseDifficulty::Practice, Language::En) => "Practice: usually combines two related rules, so match both pieces of evidence.",
-        (ExerciseDifficulty::Challenge, Language::En) => "Challenge: similar concepts are often placed together, so inspect edge cases carefully.",
-    };
-    let answer_shape = match (exercise.kind, language) {
-        (ExerciseKind::FillBlank, Language::Zh) => "答案形状：填入后应当是一段能直接嵌回代码的 Rust 片段，大小写和符号都算答案的一部分。",
-        (ExerciseKind::SingleChoice, Language::Zh) => "答案形状：只选一个最能解释代码证据的选项。",
-        (ExerciseKind::CodeOutput, Language::Zh) => "答案形状：写实际输出文本，不写类型名、不写推导过程，必要时包含换行。",
-        (ExerciseKind::OrderSteps, Language::Zh) => "答案形状：每一步必须能在前面步骤完成后合法执行，不能跳过变量创建或借用结束。",
-        (ExerciseKind::FillBlank, Language::En) => "Answer shape: the filled text must be a Rust fragment that can be pasted back; case and punctuation matter.",
-        (ExerciseKind::SingleChoice, Language::En) => "Answer shape: choose the one option that explains the code evidence.",
-        (ExerciseKind::CodeOutput, Language::En) => "Answer shape: type concrete output, not a type name or reasoning steps.",
-        (ExerciseKind::OrderSteps, Language::En) => "Answer shape: every step must be legal after previous steps.",
-    };
-
-    match language {
-        Language::Zh => vec![
-            difficulty.to_owned(),
-            answer_shape.to_owned(),
-            "答题前问自己：我能不能用一句“因为代码里的 ___，所以答案是 ___”解释出来？如果不能，先回到题干找证据。".to_owned(),
-        ],
-        Language::En => vec![
-            difficulty.to_owned(),
-            answer_shape.to_owned(),
-            "Before answering, ask: can I say 'because the code has ___, the answer is ___'? If not, go back and find evidence.".to_owned(),
-        ],
+fn exercise_answer_hint(exercise: &Exercise, language: Language) -> &'static str {
+    match (exercise.kind, language) {
+        (ExerciseKind::FillBlank, Language::Zh) => "填完后整行必须像真实 Rust 代码一样能读通；大小写、`::`、`&`、`,` 都算答案的一部分。",
+        (ExerciseKind::SingleChoice, Language::Zh) => "只选能被题干代码直接证明的那一项；熟悉但没证据的说法先排除。",
+        (ExerciseKind::CodeOutput, Language::Zh) => "只写实际输出，按执行顺序推到最后；空格、换行和调试格式也要一致。",
+        (ExerciseKind::OrderSteps, Language::Zh) => "按变量创建、借用、修改、消费的依赖排序；不能让后一步使用还不存在或已 move 的值。",
+        (ExerciseKind::FillBlank, Language::En) => "After filling it in, the whole line must read like real Rust. Case, `::`, `&`, and punctuation are part of the answer.",
+        (ExerciseKind::SingleChoice, Language::En) => "Choose only the option directly proven by the prompt code. Discard familiar claims that lack evidence.",
+        (ExerciseKind::CodeOutput, Language::En) => "Type only the actual output after evaluating execution order. Spaces, newlines, and debug formatting matter.",
+        (ExerciseKind::OrderSteps, Language::En) => "Order by creation, borrowing, mutation, and consumption dependencies. Later steps cannot use values that do not exist or were moved.",
     }
 }
 
