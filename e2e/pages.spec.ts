@@ -160,7 +160,7 @@ test.describe('Rust Ladder pages', () => {
 
     const activeRailItem = page.locator('.rail-item.active');
     await expect(activeRailItem).toBeVisible();
-    await expect(activeRailItem).toContainText(/数据类型|Data types/);
+    await expect(activeRailItem).toContainText(/从 pattern 读取读函数签名与返回值|Data Types, Functions, and Returns/);
     await expect(activeRailItem.locator('.status-dot.active')).toBeVisible();
   });
 

@@ -258,7 +258,11 @@ fn push_drill_group(
         let ordinal = index + 1;
         let id = leak(format!("drill-{lesson_id}-{difficulty_slug}-{ordinal:02}"));
         let title = leak(format!("{difficulty_name}训练：{}", spec.concept));
-        let prompt = leak(format!("围绕“{}”选择最准确的 Rust 判断。", spec.concept));
+        let source_anchor = lesson_source_anchor(lesson_id);
+        let prompt = leak(format!(
+            "结合 ripgrep 源码场景「{source_anchor}」，围绕“{}”选择最准确的 Rust 判断。",
+            spec.concept
+        ));
         let code = leak(spec.code.to_owned());
         let options = Box::leak(
             vec![
@@ -269,11 +273,11 @@ fn push_drill_group(
             .into_boxed_slice(),
         );
         let explanation = leak(format!(
-            "{}。这是本知识点的{}题，用来把概念从识别推进到可应用。",
+            "{}。对应 ripgrep 的「{source_anchor}」场景，这是本知识点的{}题，用来把概念从识别推进到可应用。",
             spec.explanation, difficulty_name
         ));
         let hint = leak(format!(
-            "先判断代码里的所有权、类型或模式关系，再排除“自动/运行时魔法”的说法。关键词：{}。",
+            "先把这段代码放回 ripgrep 的「{source_anchor}」职责里，再判断所有权、类型或模式关系。关键词：{}。",
             spec.concept
         ));
 
@@ -331,6 +335,24 @@ fn is_cjk(character: char) -> bool {
 
 fn leak(value: String) -> &'static str {
     Box::leak(value.into_boxed_str())
+}
+
+fn lesson_source_anchor(lesson_id: &str) -> &'static str {
+    match lesson_id {
+        "syntax-basics" => "crates/core/main.rs 的 main/run 入口",
+        "control-flow" => "crates/core/main.rs 的 Mode 分发与 BrokenPipe 处理",
+        "data-functions" => "crates/cli/src/pattern.rs 的 patterns_from_reader",
+        "ownership" => "crates/cli/src/process.rs 的 CommandReader::close",
+        "slices" => "crates/cli/src/pattern.rs 的 pattern_from_bytes",
+        "borrowing" => "crates/cli/src/wtr.rs 的 StandardStream::write",
+        "structs-enums" => "crates/cli/src/decompress.rs 的 builder 和 StderrReader",
+        "result-option" => "crates/cli/src/decompress.rs 的 command/build 返回值",
+        "collections" => "crates/core/flags/config.rs 的配置参数收集",
+        "iterators-traits" => "crates/core/main.rs 的搜索迭代器 pipeline",
+        "generics-traits" => "crates/globset/src/lib.rs 的 Candidate<'a>",
+        "concurrency" => "crates/core/main.rs 的 files_parallel",
+        _ => "ripgrep 源码",
+    }
 }
 
 #[derive(Clone, Copy)]
