@@ -13,8 +13,8 @@ use crate::components::{DemoBlock, MetricCard, StageCard};
 use crate::i18n::{
     answer_summary, card_fix, card_summary, card_title, demo_takeaway, demo_title,
     exercise_explanation, exercise_hint, exercise_kind_label, exercise_level_label,
-    exercise_option, exercise_prompt, exercise_title, lesson_goal, lesson_guide, lesson_summary,
-    lesson_title, stage_label, t, Language,
+    exercise_option, exercise_prompt, exercise_title, lesson_goal, lesson_summary, lesson_title,
+    stage_label, t, Language,
 };
 
 #[derive(Properties, PartialEq)]
@@ -568,6 +568,10 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
         <>
             <DemoBlock
                 title={demo_title(lesson, language)}
+                source_path={lesson.demo.source_path}
+                source_lines={lesson.demo.source_lines}
+                source_role={demo_source_role(lesson, language)}
+                book_rule={demo_book_rule(lesson, language)}
                 source_url={lesson.demo.source_url}
                 source_label={t(language, "source_ref")}
                 code={lesson.demo.code}
@@ -578,6 +582,9 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
                 book_label={t(language, "book_ref")}
                 guide_title={t(language, "quick_guide")}
                 goals_title={t(language, "learning_goals")}
+                source_anchor_label={t(language, "source_anchor")}
+                source_role_label={t(language, "source_role")}
+                source_rule_label={t(language, "source_rule")}
                 guide={enriched_lesson_guide(exercise, lesson, language)}
                 goals={enriched_lesson_goals(exercise, lesson, language)}
             />
@@ -586,15 +593,11 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
 }
 
 fn enriched_lesson_guide(exercise: &Exercise, lesson: &Lesson, language: Language) -> Vec<String> {
-    let mut guide = lesson_guide(lesson, language)
-        .iter()
-        .map(|item| (*item).to_owned())
-        .collect::<Vec<_>>();
-    guide.extend(lesson_mental_model(lesson, language));
-    guide.push(exercise_focus_copy(exercise, lesson, language));
-    guide.push(exercise_book_link(exercise, lesson, language));
-    guide.push(exercise_answer_hint(exercise, language).to_owned());
-    guide
+    vec![
+        source_reading_focus(lesson, language),
+        exercise_book_link(exercise, lesson, language),
+        exercise_answer_hint(exercise, language).to_owned(),
+    ]
 }
 
 fn enriched_lesson_goals(exercise: &Exercise, lesson: &Lesson, language: Language) -> Vec<String> {
@@ -604,11 +607,7 @@ fn enriched_lesson_goals(exercise: &Exercise, lesson: &Lesson, language: Languag
         .enumerate()
         .map(|(index, _)| lesson_goal(lesson, index, language).to_owned())
         .collect::<Vec<_>>();
-    goals.push(format!(
-        "{}：{}",
-        t(language, "exercise_link"),
-        exercise_title(exercise, language)
-    ));
+    goals.push(exercise_source_mapping(exercise, lesson, language));
     goals.push(format!(
         "{}：{}",
         t(language, "answer_hint"),
@@ -617,87 +616,123 @@ fn enriched_lesson_goals(exercise: &Exercise, lesson: &Lesson, language: Languag
     goals
 }
 
-fn exercise_focus_copy(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {
+fn source_reading_focus(lesson: &Lesson, language: Language) -> String {
     match language {
         Language::Zh => format!(
-            "在「{}」模块里，先抓 Rust Book 的核心规则，再对应到「{}」这题的代码证据；目标是少读概念、直接知道该看哪里。",
-            lesson_title(lesson, language),
-            exercise_title(exercise, language)
+            "先把源码定位到 `{}` {}，理解它在 ripgrep 里的职责，再回到题目判断具体 Rust 规则。",
+            lesson.demo.source_path, lesson.demo.source_lines
         ),
         Language::En => format!(
-            "In '{}', start with the Rust Book rule, then connect it to the code evidence in '{}'. Keep it short: know where to look before answering.",
-            lesson_title(lesson, language),
-            exercise_title(exercise, language)
+            "Start at `{}` {}, understand its role in ripgrep, then answer by applying the mapped Rust rule.",
+            lesson.demo.source_path, lesson.demo.source_lines
         ),
     }
 }
 
-fn lesson_mental_model(lesson: &Lesson, language: Language) -> Vec<String> {
-    match (lesson.id, language) {
-        ("syntax-basics", Language::Zh) => vec![
-            "Rust 会先判断代码片段处在声明、表达式、语句还是模式位置；位置错了，词义再接近也不能编译。".to_owned(),
-            "`let` 默认不可变；`mut` 只允许同一个绑定改值，不会改变静态类型规则。".to_owned(),
-            "表达式会产生值，语句只是执行动作；分号通常会把表达式的值丢掉。".to_owned(),
-        ],
-        ("control-flow", Language::Zh) => vec![
-            "`if` 和 `match` 不只是流程控制，也可以直接产出一个值。".to_owned(),
-            "`match` 的核心是穷尽：每一种可能输入都要有分支处理。".to_owned(),
-            "`if let` 是只关心一个模式的简写；它不会帮你检查其他情况是否被处理。".to_owned(),
-        ],
-        ("data-functions", Language::Zh) => vec![
-            "元组按位置组织固定数量的值，可以混合类型；数组 `[T; N]` 要求元素类型相同，长度 N 也是类型的一部分。".to_owned(),
-            "函数签名是契约：参数类型必须写明，返回类型写在 `->` 后面。".to_owned(),
-            "函数体最后一个无分号表达式就是返回值；`return` 可以提前返回，但 Rust 更常用尾表达式。".to_owned(),
-        ],
-        ("ownership", Language::Zh) => vec![
-            "所有权回答的是“谁负责释放这块数据”；同一时刻一个值只有一个 owner。".to_owned(),
-            "`String`、`Vec` 这类拥有堆数据的类型赋值时通常 move；整数、bool 等 Copy 类型赋值后原变量仍可用。".to_owned(),
-            "如果只是读取，用引用借用；如果确实需要两份拥有的数据，再显式 `clone`。".to_owned(),
-        ],
-        ("slices", Language::Zh) => vec![
-            "切片是借来的窗口，不是新集合；它指向原数据的一段连续区域。".to_owned(),
-            "字符串切片范围按字节算，并且必须落在 UTF-8 字符边界上。".to_owned(),
-            "返回 `&str` 能把结果和原字符串的借用关系绑定起来，避免旧索引失效。".to_owned(),
-        ],
-        ("borrowing", Language::Zh) => vec![
-            "借用让代码临时访问值而不取得所有权：`&T` 读，`&mut T` 写。".to_owned(),
-            "同一时间要么多个共享读，要么一个独占写；不能读写借用同时活跃。".to_owned(),
-            "借用通常持续到最后一次使用；缩短使用范围就能释放借用。".to_owned(),
-        ],
-        ("structs-enums", Language::Zh) => vec![
-            "struct 用字段名组织总是一起出现的数据，字段名让代码比元组更自解释。".to_owned(),
-            "方法接收者决定权限：`&self` 只能读，`&mut self` 能改，`self` 会消费值。".to_owned(),
-            "enum 表示有限状态集合；写变体要带枚举名，例如 `Message::Quit`，因为 `Quit` 属于 `Message`。".to_owned(),
-        ],
-        ("result-option", Language::Zh) => vec![
-            "`Option<T>` 表示可能没有值，用 `Some(value)` 和 `None` 代替 null。".to_owned(),
-            "`Result<T, E>` 表示可能失败，成功是 `Ok(T)`，失败是 `Err(E)`。".to_owned(),
-            "`?` 不是捕获错误，而是在失败时提前返回；成功时拆出内部值继续执行。".to_owned(),
-        ],
-        ("collections", Language::Zh) => vec![
-            "集合管理一组值：`Vec` 保持顺序，`String` 管 UTF-8 文本，`HashMap` 按 key 查 value。".to_owned(),
-            "修改集合本身通常需要 `mut`，把拥有所有权的 key/value 放进集合会发生 move。".to_owned(),
-            "`entry` API 把“存在就更新，不存在就插入”合并成一条安全路径。".to_owned(),
-        ],
-        ("iterators-traits", Language::Zh) => vec![
-            "迭代器链像流水线：`map/filter` 只是描述步骤，`collect/sum/for` 才真正执行。".to_owned(),
-            "`iter()` 借用元素，`into_iter()` 倾向于交出元素所有权；先判断后续还需不需要原集合。".to_owned(),
-            "trait 是能力约束：泛型代码想打印、比较或相加，就必须声明对应 trait bound。".to_owned(),
-        ],
-        ("generics-traits", Language::Zh) => vec![
-            "泛型把具体类型换成参数，但函数体里用到的能力必须通过 trait bound 说明。".to_owned(),
-            "`where` 子句只是把复杂约束换个位置写，不改变约束含义。".to_owned(),
-            "生命周期标注描述引用之间的关系，不会让局部变量活得更久。".to_owned(),
-        ],
-        ("concurrency", Language::Zh) => vec![
-            "线程可能比当前函数活得久，所以跨线程捕获外部值时经常要 `move` 取得所有权。".to_owned(),
-            "channel 发送的是值的所有权；发送后原线程通常不能继续使用这个值。".to_owned(),
-            "共享可变状态要同时解决多个 owner 和互斥修改：常见组合是 `Arc<Mutex<T>>`。".to_owned(),
-        ],
-        _ => lesson_guide(lesson, language)
-            .iter()
-            .map(|item| (*item).to_owned())
-            .collect(),
+fn demo_source_role(lesson: &Lesson, language: Language) -> &'static str {
+    if language == Language::Zh {
+        return lesson.demo.source_role;
+    }
+
+    match lesson.id {
+        "syntax-basics" => {
+            "ripgrep's executable entry point wires flag parsing, search execution, and error exit codes together."
+        }
+        "control-flow" => {
+            "Selects the execution path for search, file listing, type listing, or shell completion generation."
+        }
+        "data-functions" => {
+            "Reads pattern lines from an input reader and collects searchable patterns into `Vec<String>`."
+        }
+        "ownership" => {
+            "Closes a child process stdout pipe and waits for the external decompressor process."
+        }
+        "slices" => {
+            "Validates raw pattern bytes as UTF-8 before treating them as a searchable text pattern."
+        }
+        "borrowing" => {
+            "Unifies output backends under `io::Write` so search results can be written safely."
+        }
+        "structs-enums" => {
+            "Stores decompression command configuration and exposes builder methods for matcher construction."
+        }
+        "result-option" => {
+            "Looks up a decompressor command for a path and returns `None` when no match is found."
+        }
+        "collections" => {
+            "Parses config lines and collects arguments and parse errors into separate `Vec` values."
+        }
+        "iterators-traits" => {
+            "Turns directory walk results into searchable haystacks before running the search loop."
+        }
+        "generics-traits" => {
+            "Wraps a candidate path so globset can test it while preserving borrowed path data."
+        }
+        "concurrency" => {
+            "Lets parallel workers send paths to one printer thread through a channel."
+        }
+        _ => lesson.demo.source_role,
+    }
+}
+
+fn demo_book_rule(lesson: &Lesson, language: Language) -> &'static str {
+    if language == Language::Zh {
+        return lesson.demo.book_rule;
+    }
+
+    match lesson.id {
+        "syntax-basics" => {
+            "`match` is an expression, arm tails can become return values, and macros perform side effects."
+        }
+        "control-flow" => "`match` must cover all modes, while guards refine a matched pattern.",
+        "data-functions" => {
+            "Function signatures state input, output, and error boundaries; a tail expression returns the final `Result`."
+        }
+        "ownership" => {
+            "Moves transfer resource ownership; `Option::take` moves a value out and leaves `None` behind."
+        }
+        "slices" => {
+            "Slices are borrowed views; a returned `&str` must stay tied to the input byte slice."
+        }
+        "borrowing" => {
+            "`&mut self` gives exclusive mutation of writer state, while `&[u8]` only borrows the buffer for reading."
+        }
+        "structs-enums" => {
+            "Structs hold related fields, impl blocks define behavior, and `&mut self` methods can support chaining."
+        }
+        "result-option" => {
+            "`Option` models absence and `Result` models recoverable failure; keep those meanings separate."
+        }
+        "collections" => {
+            "`Vec` is growable; `push` stores owned values and mutating the collection requires `mut`."
+        }
+        "iterators-traits" => {
+            "Iterator adapters are lazy; `filter_map` describes a transformation and `for` consumes it."
+        }
+        "generics-traits" => {
+            "Trait bounds describe accepted capabilities, and lifetimes relate borrowed output to borrowed input."
+        }
+        "concurrency" => {
+            "Channels transfer ownership between threads, and `thread::spawn` closures often use `move`."
+        }
+        _ => lesson.demo.book_rule,
+    }
+}
+
+fn exercise_source_mapping(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {
+    match language {
+        Language::Zh => format!(
+            "{}：这道题把「{}」落到 `{}` 的源码片段里，不是孤立背概念。",
+            t(language, "exercise_link"),
+            exercise_title(exercise, language),
+            lesson.demo.source_path
+        ),
+        Language::En => format!(
+            "{}: '{}' is mapped back to `{}` instead of being a detached concept drill.",
+            t(language, "exercise_link"),
+            exercise_title(exercise, language),
+            lesson.demo.source_path
+        ),
     }
 }
 

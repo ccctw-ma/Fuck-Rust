@@ -1,13 +1,13 @@
-# Rust Ladder
+# Rust via ripgrep
 
-A progressive Rust learning site implemented entirely in Rust. The frontend is built with Yew and compiled to WASM, while curriculum, answer checking, and progress logic live in the pure Rust `learning_core` crate. The site deploys to Cloudflare Pages.
+A progressive Rust learning site implemented entirely in Rust. The curriculum now teaches Rust through ripgrep source code: every topic anchors to a real ripgrep snippet, then maps the relevant rule from The Rust Programming Language into exercises. The frontend is built with Yew and compiled to WASM, while curriculum, answer checking, and progress logic live in the pure Rust `learning_core` crate. The site deploys to Cloudflare Pages.
 
 ## Features
 
-- Learning path follows 12 chapters from The Rust Programming Language: variables, control flow, data types, ownership, slices, borrowing, structs, collections, error handling, iterators, generics, and concurrency.
-- 39 interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering, with extra practice and challenge questions for ownership, borrowing, generics, and concurrency.
+- Learning path follows 12 ripgrep source modules: entry and exit codes, mode dispatch, pattern loading, process resources, byte slices, writer borrowing, decompression builders, Option/Result boundaries, config collections, search pipelines, globset generics, and parallel search.
+- 300+ interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering, arranged as basic, practice, and challenge questions for each module.
 - Instant feedback with expected answers, explanations, and the next exercise.
-- Mini demos linked to Rust Book chapters.
+- Source reading modules show the ripgrep file path, line range, source responsibility, mapped Rust Book rule, question focus, and source link.
 - Local progress stored in browser `localStorage`, including language and theme preferences.
 - Light/dark mode and Chinese/English UI.
 - CI/CD with format checks, Clippy, tests, coverage gate, GitHub Actions deployment, and workflow monitoring.

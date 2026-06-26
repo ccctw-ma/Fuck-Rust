@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const pages = [
-  { path: '/', title: /Rust 阶梯学习站|Rust Ladder/ },
+  { path: '/', title: /ripgrep 源码 Rust 学习站|Rust via ripgrep/ },
   { path: '/learn', title: /课程路径|Learning Path/ },
   { path: '/cards', title: /知识卡片|Knowledge Cards/ },
   { path: '/stats', title: /学习统计|Stats/ },
@@ -15,11 +15,11 @@ const exerciseCases = [
   { id: 'borrowing-mut-ref', kind: 'order step buttons' },
 ];
 
-test.describe('Rust Ladder pages', () => {
+test.describe('Rust via ripgrep pages', () => {
   for (const item of pages) {
     test(`${item.path} renders without visual regressions`, async ({ page }) => {
       await page.goto(item.path);
-      await expect(page.getByRole('link', { name: /Rust 阶梯学习站|Rust Ladder/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /ripgrep 源码 Rust 学习站|Rust via ripgrep/ })).toBeVisible();
       await expect(page.getByText(item.title).first()).toBeVisible();
       await assertNoHorizontalOverflow(page);
       await assertNoVisibleOverlap(page);
@@ -44,12 +44,17 @@ test.describe('Rust Ladder pages', () => {
     expect(contrast).toBeGreaterThanOrEqual(7);
   });
 
-  test('lesson exercise includes concise Rust Book guide before answering', async ({ page }) => {
+  test('lesson exercise includes ripgrep source reading module before answering', async ({ page }) => {
     await page.goto('/exercise/syntax-let-mut');
 
-    await expect(page.getByText('先学这个')).toBeVisible();
-    await expect(page.getByText(/Rust 默认让绑定不可变/)).toBeVisible();
-    await expect(page.getByText('掌握目标')).toBeVisible();
+    await expect(page.getByText('源码阅读模块')).toBeVisible();
+    await expect(page.getByText('当前源码锚点')).toBeVisible();
+    await expect(page.getByText(/crates\/core\/main\.rs L43-L66/)).toBeVisible();
+    await expect(page.getByText('源码职责')).toBeVisible();
+    await expect(page.getByText(/ripgrep 的程序入口/)).toBeVisible();
+    await expect(page.getByText('对应规则')).toBeVisible();
+    await expect(page.getByText(/match 是表达式/)).toBeVisible();
+    await expect(page.getByText('这题对应')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Rust Book' })).toBeVisible();
     await expect(page.getByRole('link', { name: /查看 ripgrep 源码/ })).toHaveAttribute('href', /github\.com\/BurntSushi\/ripgrep/);
   });
@@ -71,12 +76,14 @@ test.describe('Rust Ladder pages', () => {
     await expect(drawer.getByText(/运行输出|Output/)).toBeVisible();
   });
 
-  test('lesson exercise folds mental model into the richer learn-first module', async ({ page }) => {
+  test('struct lesson maps enum questions back to ripgrep source', async ({ page }) => {
     await page.goto('/exercise/enum-if-let-method');
 
     const demo = page.locator('.demo-panel');
     await expect(page.getByText('答题前知识模块')).not.toBeVisible();
-    await expect(demo.getByText('先学这个')).toBeVisible();
+    await expect(demo.getByText('源码阅读模块')).toBeVisible();
+    await expect(demo.getByText(/crates\/cli\/src\/decompress\.rs L15-L45/)).toBeVisible();
+    await expect(demo.getByText(/保存解压命令配置/)).toBeVisible();
     await expect(demo.getByText(/Message::Quit/).first()).toBeVisible();
     await expect(demo.getByText(/答题提示/)).toBeVisible();
     await expect(page.getByText(/enum Message \{ Quit/)).toBeVisible();

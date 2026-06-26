@@ -18,7 +18,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      'cd apps/web && PATH="$HOME/.cargo/bin:$PATH" trunk serve --address 127.0.0.1 --port 8080',
+      'cd apps/web && PATH="$HOME/.cargo/bin:$PATH" env -u NO_COLOR trunk serve --address 127.0.0.1 --port 8080',
     url: 'http://127.0.0.1:8080',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

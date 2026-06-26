@@ -208,6 +208,10 @@ pub fn stage_card(props: &StageCardProps) -> Html {
 #[derive(Properties, PartialEq)]
 pub struct DemoBlockProps {
     pub title: &'static str,
+    pub source_path: &'static str,
+    pub source_lines: &'static str,
+    pub source_role: &'static str,
+    pub book_rule: &'static str,
     pub source_url: &'static str,
     pub source_label: &'static str,
     pub code: &'static str,
@@ -218,6 +222,9 @@ pub struct DemoBlockProps {
     pub book_label: &'static str,
     pub guide_title: &'static str,
     pub goals_title: &'static str,
+    pub source_anchor_label: &'static str,
+    pub source_role_label: &'static str,
+    pub source_rule_label: &'static str,
     pub guide: Vec<String>,
     pub goals: Vec<String>,
 }
@@ -235,6 +242,20 @@ pub fn demo_block(props: &DemoBlockProps) -> Html {
                     <a class="pill strong" href={props.book_url} target="_blank" rel="noreferrer">
                         { props.book_label }
                     </a>
+                </div>
+            </div>
+            <div class="source-reading-card">
+                <div class="source-reading-row">
+                    <p class="guide-title">{ props.source_anchor_label }</p>
+                    <p class="guide-copy strong-copy">{ format!("{} {}", props.source_path, props.source_lines) }</p>
+                </div>
+                <div class="source-reading-row">
+                    <p class="guide-title">{ props.source_role_label }</p>
+                    <p class="guide-copy">{ props.source_role }</p>
+                </div>
+                <div class="source-reading-row">
+                    <p class="guide-title">{ props.source_rule_label }</p>
+                    <p class="guide-copy">{ props.book_rule }</p>
                 </div>
             </div>
             <div class="guide-list">

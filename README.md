@@ -1,25 +1,25 @@
-# Rust 阶梯学习站 / Rust Ladder
+# ripgrep 源码 Rust 学习站 / Rust via ripgrep
 
 English-only README: [README.en.md](./README.en.md)
 
-一个完全用 Rust 实现的渐进式 Rust 学习网站。前端使用 Yew 编译到 WASM，学习路径、题目校验和进度统计放在纯 Rust `learning_core` crate 中，页面部署到 Cloudflare Pages。
+一个完全用 Rust 实现的渐进式 Rust 学习网站。课程主线已经改为“通过阅读 ripgrep 源码学习 Rust”：每个知识模块都锚到 ripgrep 的真实源码片段，再对照 The Rust Programming Language 的规则做题。前端使用 Yew 编译到 WASM，学习路径、题目校验和进度统计放在纯 Rust `learning_core` crate 中，页面部署到 Cloudflare Pages。
 
-A progressive Rust learning site implemented entirely in Rust. The frontend is Yew compiled to WASM, while curriculum, checking, and progress logic live in the pure Rust `learning_core` crate. The site is deployed to Cloudflare Pages.
+A progressive Rust learning site implemented entirely in Rust. The curriculum now teaches Rust through ripgrep source code: every topic anchors to a real ripgrep snippet, then maps the relevant rule from The Rust Programming Language into exercises. The frontend is Yew compiled to WASM, while curriculum, checking, and progress logic live in the pure Rust `learning_core` crate. The site is deployed to Cloudflare Pages.
 
 ## 功能 / Features
 
-- 按 The Rust Programming Language 组织 12 个学习章节：变量、控制流、数据类型、所有权、切片、借用、结构体、集合、错误处理、迭代器、泛型和并发。
-- 39 道在线互动练习：单选、填空、代码输出判断、步骤排序，并为所有权、借用、泛型、并发补充进阶/挑战题。
+- 按 ripgrep 源码组织 12 个学习章节：入口与退出码、模式分发、pattern 读取、进程资源、字节切片、writer 借用、解压 builder、Option/Result、配置集合、搜索 pipeline、globset 泛型与并行搜索。
+- 300+ 道在线互动练习：单选、填空、代码输出判断、步骤排序，每个模块按基础、进阶、挑战递进，并尽量避免同一模块内重复题型。
 - 即时反馈：提交后展示参考答案、解释和下一题入口。
-- 小 demo：每课提供 Rust Book 对应章节、代码片段、输出和关键理解点。
+- 源码阅读模块：每课展示 ripgrep 源码路径、行号、源码职责、Rust Book 对应规则、题目落点和源码链接。
 - 本地进度：使用浏览器 `localStorage` 保存完成状态、答题统计、语言和主题偏好。
 - UI：支持 light/dark 模式和中文/英文双语。
 - CI/CD：GitHub Actions 执行格式、Clippy、测试、覆盖率门禁、Cloudflare Pages 部署和运行监听。
 
-- Learning path follows 12 chapters from The Rust Programming Language: variables, control flow, data types, ownership, slices, borrowing, structs, collections, error handling, iterators, generics, and concurrency.
-- 39 interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering, with extra practice and challenge questions for ownership, borrowing, generics, and concurrency.
+- Learning path follows 12 ripgrep source modules: entry and exit codes, mode dispatch, pattern loading, process resources, byte slices, writer borrowing, decompression builders, Option/Result boundaries, config collections, search pipelines, globset generics, and parallel search.
+- 300+ interactive exercises: single choice, fill-in-the-blank, output prediction, and step ordering, arranged as basic, practice, and challenge questions for each module.
 - Instant feedback with expected answers, explanations, and the next exercise.
-- Mini demos linked to Rust Book chapters.
+- Source reading modules show the ripgrep file path, line range, source responsibility, mapped Rust Book rule, question focus, and source link.
 - Local progress stored in browser `localStorage`, including language and theme preferences.
 - Light/dark mode and Chinese/English UI.
 - CI/CD with format, Clippy, tests, coverage gate, Cloudflare Pages deployment, and workflow monitoring.

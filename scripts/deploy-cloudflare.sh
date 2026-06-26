@@ -26,7 +26,7 @@ fi
 
 rustup target add wasm32-unknown-unknown
 
-(cd apps/web && trunk build --release)
+(cd apps/web && env -u NO_COLOR trunk build --release)
 
 mkdir -p "$WRANGLER_HOME_DIR"
 

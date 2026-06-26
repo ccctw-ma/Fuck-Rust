@@ -32,7 +32,7 @@ impl Language {
 pub fn t(language: Language, key: &str) -> &'static str {
     match language {
         Language::Zh => match key {
-            "brand_title" => "Rust 阶梯学习站",
+            "brand_title" => "ripgrep 源码 Rust 学习站",
             "home" => "首页",
             "learn" => "课程路径",
             "cards" => "知识卡片",
@@ -40,7 +40,7 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "theme_light" => "亮色",
             "theme_dark" => "暗色",
             "rail_title" => "学习路径",
-            "rail_caption" => "按顺序推进即可。每个知识点都配 Rust Book 章节、短 demo 和即时反馈题。",
+            "rail_caption" => "按 ripgrep 源码阅读顺序推进：先看真实代码职责，再对照 Rust Book 规则做题。",
             "open_categories" => "展开分类",
             "close_categories" => "收起分类",
             "path_short" => "路径",
@@ -48,10 +48,10 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "minute_suffix" => "分钟",
             "lesson_count_suffix" => "课",
             "completed" => "完成",
-            "hero_eyebrow" => "按 Rust Book 渐进学习 · 在线做题 · 小 demo",
-            "hero_title_prefix" => "把 Rust 拆成",
-            "hero_title_accent" => "能完成的下一步",
-            "hero_copy" => "学习顺序直接对齐 The Rust Programming Language。先看一个书中同源的小 demo，再做一道能立刻反馈的题，把所有权、借用、Result、trait 和生命周期逐层吃透。",
+            "hero_eyebrow" => "跟着 ripgrep 源码读 Rust · Rust Book 对照 · 在线做题",
+            "hero_title_prefix" => "从真实源码里",
+            "hero_title_accent" => "学会 Rust",
+            "hero_copy" => "学习路径改成围绕 ripgrep 展开：入口、参数、pattern、writer、解压、遍历、glob 和并行搜索都对应真实源码片段。每道题先说明这段源码在做什么，再把 Rust Book 规则落到具体代码证据上。",
             "continue" => "继续：",
             "view_path" => "查看课程路径",
             "review_cards" => "复习高频易错点",
@@ -60,9 +60,9 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "streak" => "连续学习",
             "days" => "天",
             "four_stages" => "四阶段路线",
-            "four_stages_copy" => "每一阶段都锚到 Rust Book 对应章节，先能读懂，再能写对。",
+            "four_stages_copy" => "每一阶段都锚到 ripgrep 的真实模块：先读懂源码职责，再掌握背后的 Rust 规则。",
             "learn_title" => "课程路径",
-            "learn_copy" => "从变量到并发，每一课都对应 Rust Book 原章节、多道小题和一个可读 demo。",
+            "learn_copy" => "从 `crates/core/main.rs` 到 globset、writer 和并行搜索，每一课都用 ripgrep 源码承载一个 Rust 知识模块。",
             "difficulty" => "难度",
             "enter_exercise" => "进入练习",
             "book_ref" => "Rust Book",
@@ -97,14 +97,18 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "empty_order" => "还没有选择步骤",
             "reset_order" => "重排",
             "demo_output" => "输出",
-            "quick_guide" => "先学这个",
-            "learning_goals" => "掌握目标",
+            "quick_guide" => "源码阅读模块",
+            "learning_goals" => "这题对应",
             "primer_title" => "答题前知识模块",
-            "book_points" => "Rust Book 知识点",
-            "exercise_link" => "这道题考什么",
+            "book_points" => "Rust Book 规则",
+            "exercise_link" => "题目落点",
             "answer_hint" => "答题提示",
+            "source_anchor" => "当前源码锚点",
+            "source_role" => "源码职责",
+            "source_rule" => "对应规则",
+            "source_question" => "题目关联",
             "cards_title" => "知识卡片",
-            "cards_copy" => "把最容易卡住的概念拆成错误示例和修正方式，做错题时回来对照。",
+            "cards_copy" => "把读 ripgrep 源码时最容易卡住的所有权、借用、错误处理和生命周期问题，拆成错误示例和修正方式。",
             "completion_rate" => "完成率",
             "done" => "已完成",
             "weak_lessons" => "薄弱章节",
@@ -118,7 +122,7 @@ pub fn t(language: Language, key: &str) -> &'static str {
             _ => "",
         },
         Language::En => match key {
-            "brand_title" => "Rust Ladder",
+            "brand_title" => "Rust via ripgrep",
             "home" => "Home",
             "learn" => "Path",
             "cards" => "Cards",
@@ -126,7 +130,7 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "theme_light" => "Light",
             "theme_dark" => "Dark",
             "rail_title" => "Learning Path",
-            "rail_caption" => "Move in order. Every topic links to The Rust Book, a short demo, and instant feedback.",
+            "rail_caption" => "Move through ripgrep source: read the real module, map it to The Rust Book, then practice.",
             "open_categories" => "Open categories",
             "close_categories" => "Collapse categories",
             "path_short" => "Path",
@@ -134,10 +138,10 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "minute_suffix" => "min",
             "lesson_count_suffix" => "lessons",
             "completed" => "Completed",
-            "hero_eyebrow" => "The Rust Book path · Practice · Mini demos",
-            "hero_title_prefix" => "Break Rust into",
-            "hero_title_accent" => "one doable next step",
-            "hero_copy" => "The learning order follows The Rust Programming Language. Read a book-aligned demo first, then solve one fast-feedback exercise so ownership, borrowing, Result, traits, and lifetimes become concrete.",
+            "hero_eyebrow" => "Learn Rust through ripgrep source · Book rules · Practice",
+            "hero_title_prefix" => "Learn Rust from",
+            "hero_title_accent" => "real source code",
+            "hero_copy" => "The path now follows ripgrep: entry points, arguments, patterns, writers, decompression, walking, glob matching, and parallel search. Each exercise starts from a concrete source snippet, then maps the Rust Book rule back to code evidence.",
             "continue" => "Continue: ",
             "view_path" => "View path",
             "review_cards" => "Review pain points",
@@ -146,9 +150,9 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "streak" => "Learning streak",
             "days" => "days",
             "four_stages" => "Four-stage path",
-            "four_stages_copy" => "Every stage maps to a chapter in The Rust Book: read first, then write correctly.",
+            "four_stages_copy" => "Every stage maps to real ripgrep modules: understand the source responsibility, then learn the Rust rule behind it.",
             "learn_title" => "Learning Path",
-            "learn_copy" => "From variables to concurrency, every lesson has a Rust Book chapter, several exercises, and one readable demo.",
+            "learn_copy" => "From `crates/core/main.rs` to globset, writers, and parallel search, every lesson anchors one Rust topic in ripgrep source.",
             "difficulty" => "Level",
             "enter_exercise" => "Practice",
             "book_ref" => "Rust Book",
@@ -183,14 +187,18 @@ pub fn t(language: Language, key: &str) -> &'static str {
             "empty_order" => "No step selected yet",
             "reset_order" => "Reset",
             "demo_output" => "Output",
-            "quick_guide" => "Learn first",
-            "learning_goals" => "Goals",
+            "quick_guide" => "Source reading module",
+            "learning_goals" => "Question mapping",
             "primer_title" => "Pre-question module",
-            "book_points" => "Rust Book points",
-            "exercise_link" => "What this asks",
+            "book_points" => "Rust Book rule",
+            "exercise_link" => "Question focus",
             "answer_hint" => "Answer hint",
+            "source_anchor" => "Current source anchor",
+            "source_role" => "Source role",
+            "source_rule" => "Mapped rule",
+            "source_question" => "Question link",
             "cards_title" => "Knowledge Cards",
-            "cards_copy" => "The concepts that usually block learners, shown as wrong code and a concrete fix.",
+            "cards_copy" => "The ownership, borrowing, error, and lifetime traps that show up while reading ripgrep source.",
             "completion_rate" => "Completion",
             "done" => "Done",
             "weak_lessons" => "Weak Lessons",
@@ -223,14 +231,14 @@ pub fn stage_description(stage: Stage, language: Language) -> &'static str {
         Language::Zh => stage.description(),
         Language::En => match stage {
             Stage::Foundation => {
-                "Turn variables, expressions, and control flow into muscle memory."
+                "Start from ripgrep's entry point, argument parsing, and mode dispatch."
             }
             Stage::Ownership => {
-                "Focus on move, borrow, mutable references, and the rules behind them."
+                "Trace ownership and borrowing through patterns, process pipes, slices, and writers."
             }
-            Stage::Patterns => "Use enums, Result, and iterators to write more idiomatic Rust.",
+            Stage::Patterns => "Read ripgrep builders, Option/Result boundaries, and collection-heavy config parsing.",
             Stage::Production => {
-                "Build engineering intuition for traits, lifetimes, and async Rust."
+                "Connect iterators, traits, generics, lifetimes, and threads in production search code."
             }
         },
     }
@@ -264,18 +272,18 @@ pub fn lesson_title(lesson: &Lesson, language: Language) -> &'static str {
         return lesson.title;
     }
     match lesson.id {
-        "syntax-basics" => "Variables, Mutability, and Expressions",
-        "control-flow" => "match, if let, and Patterns",
-        "data-functions" => "Data Types, Functions, and Returns",
-        "ownership" => "Ownership, Move, and Clone",
-        "slices" => "Slices and first_word",
-        "borrowing" => "Borrowing and Mutable References",
-        "structs-enums" => "Structs, Methods, and Enums",
-        "result-option" => "Option, Result, and Error Handling",
-        "collections" => "Collections: Vec, String, and HashMap",
-        "iterators-traits" => "Iterators, Traits, and Lifetime Intuition",
-        "generics-traits" => "Generics, Trait Bounds, and Lifetimes",
-        "concurrency" => "Threads, Message Passing, and Shared State",
+        "syntax-basics" => "Read variables and expressions from ripgrep main",
+        "control-flow" => "Read match and guards from ripgrep mode dispatch",
+        "data-functions" => "Read function signatures from pattern loading",
+        "ownership" => "Read ownership transfer from CommandReader",
+        "slices" => "Read &[u8] and &str from pattern bytes",
+        "borrowing" => "Read borrowing from ripgrep writers",
+        "structs-enums" => "Read structs, impls, and enums from decompression",
+        "result-option" => "Read Option and Result from decompressor lookup",
+        "collections" => "Read Vec, String, and maps from config parsing",
+        "iterators-traits" => "Read iterators and traits from the search pipeline",
+        "generics-traits" => "Read generics and lifetimes from globset Candidate",
+        "concurrency" => "Read threads and channels from parallel search",
         _ => lesson.title,
     }
 }
@@ -285,22 +293,23 @@ pub fn lesson_summary(lesson: &Lesson, language: Language) -> &'static str {
         return lesson.summary;
     }
     match lesson.id {
-        "syntax-basics" => "Understand let, mut, shadowing, and expression return values before syntax feels heavy.",
-        "control-flow" => "Rust branches are expressions, and match must cover every possible case.",
-        "data-functions" => "Connect scalar types, compound types, function parameters, and expression return values.",
-        "ownership" => "The core Rust gate: each value has one owner, and moved values cannot be reused.",
-        "slices" => "Slices borrow a continuous region of a collection and make string boundaries safer.",
-        "borrowing" => "Learn why Rust allows many immutable references or one mutable reference at a time.",
-        "structs-enums" => "Use structs for domain data, impl blocks for behavior, and enums for finite states.",
-        "result-option" => "Use types to express absence and recoverable failure instead of null or hidden exceptions.",
-        "collections" => "Use standard collections for real data flow while practicing mutability and ownership.",
-        "iterators-traits" => "Move from code that works to code that feels like Rust: iterator chains, trait bounds, and reference lifetimes.",
-        "generics-traits" => "Abstract repeated logic with generics, describe capabilities with trait bounds, and relate references with lifetimes.",
-        "concurrency" => "Use threads, channels, Mutex, and Arc to see how Rust moves concurrency errors to compile time.",
+        "syntax-basics" => "Use `crates/core/main.rs` to see how let bindings, match expressions, and exit codes shape the executable.",
+        "control-flow" => "Follow ripgrep's `Mode` dispatch to understand exhaustive match arms, guards, and early returns.",
+        "data-functions" => "Read `patterns_from_reader` to connect parameters, trait bounds, Vec returns, and `?` propagation.",
+        "ownership" => "Inspect `Option::take` on child stdout to see a real resource move instead of an abstract String example.",
+        "slices" => "Read byte patterns becoming `&str` and learn why slices borrow data instead of owning it.",
+        "borrowing" => "Use the writer implementation to see `&mut self` mutate output state while `&[u8]` is only read.",
+        "structs-enums" => "Read the decompression builder and related enum states to see data shape plus behavior.",
+        "result-option" => "Use decompressor lookup to separate normal absence (`None`) from recoverable failure (`Result`).",
+        "collections" => "Follow config parsing as it pushes owned arguments and errors into growable collections.",
+        "iterators-traits" => "Read the search pipeline where walking, filtering, sorting, and searching are chained together.",
+        "generics-traits" => "Use globset's `Candidate<'a>` to make trait bounds and lifetimes concrete.",
+        "concurrency" => "Read parallel file listing where workers send owned haystacks to a single printer thread.",
         _ => lesson.summary,
     }
 }
 
+#[allow(dead_code)]
 pub fn lesson_guide(lesson: &Lesson, language: Language) -> &'static [&'static str] {
     match language {
         Language::Zh => match lesson.id {
@@ -484,18 +493,18 @@ pub fn demo_title(lesson: &Lesson, language: Language) -> &'static str {
         return lesson.demo.title;
     }
     match lesson.id {
-        "syntax-basics" => "The Rust Book: mutable variable",
-        "control-flow" => "The Rust Book: match returns a value",
-        "data-functions" => "The Rust Book: tuple destructuring",
-        "ownership" => "The Rust Book: move instead of shallow copy",
-        "slices" => "The Rust Book: string slices",
-        "borrowing" => "The Rust Book: borrowing a String",
-        "structs-enums" => "The Rust Book: struct update syntax",
-        "result-option" => "The Rust Book: matching on Result",
-        "collections" => "The Rust Book: HashMap entry",
-        "iterators-traits" => "The Rust Book: iterator sum",
-        "generics-traits" => "The Rust Book: longest lifetime",
-        "concurrency" => "The Rust Book: move closures into threads",
+        "syntax-basics" => "ripgrep: crates/core/main.rs",
+        "control-flow" => "ripgrep: Mode dispatch in run",
+        "data-functions" => "ripgrep: pattern reader",
+        "ownership" => "ripgrep: CommandReader stdout ownership",
+        "slices" => "ripgrep: bytes to pattern str",
+        "borrowing" => "ripgrep: writer borrowing",
+        "structs-enums" => "ripgrep: decompression builder",
+        "result-option" => "ripgrep: decompressor lookup",
+        "collections" => "ripgrep: config args parser",
+        "iterators-traits" => "ripgrep: search iterator pipeline",
+        "generics-traits" => "ripgrep: globset Candidate<'a>",
+        "concurrency" => "ripgrep: parallel file listing",
         _ => lesson.demo.title,
     }
 }
@@ -505,18 +514,18 @@ pub fn demo_takeaway(lesson: &Lesson, language: Language) -> &'static str {
         return lesson.demo.takeaway;
     }
     match lesson.id {
-        "syntax-basics" => "Bindings are immutable by default; write mut only when the same binding must change.",
-        "control-flow" => "match is exhaustive and each arm can produce the value assigned to a variable.",
-        "data-functions" => "Tuples are fixed-size compound values. Pattern destructuring binds each position at once.",
-        "ownership" => "A String owns heap data. Moving it prevents two owners from freeing the same allocation.",
-        "slices" => "A slice does not own data; it borrows a region and ties the returned value to the source.",
-        "borrowing" => "Passing &String lets a function read the value while the caller keeps ownership.",
-        "structs-enums" => "Struct update syntax can move non-Copy fields from the old value into the new value.",
-        "result-option" => "Result forces success and failure paths into the type system and the control flow.",
-        "collections" => "entry(...).or_insert(...) is the standard insert-or-update pattern for maps.",
-        "iterators-traits" => "Iterator adapters are lazy; consuming methods such as sum or collect run the chain.",
-        "generics-traits" => "A lifetime parameter relates returned references to input references; it does not extend storage.",
-        "concurrency" => "move gives the spawned thread ownership of captured values so it cannot outlive borrowed data.",
+        "syntax-basics" => "The ripgrep entry point shows match as the returned expression of `main`, not a toy snippet.",
+        "control-flow" => "Mode dispatch uses guards and early returns to choose the actual search path.",
+        "data-functions" => "`patterns_from_reader` makes the input reader, collected Vec, and error boundary visible in one signature.",
+        "ownership" => "`Option::take` moves a real stdout pipe out before waiting for the child process.",
+        "slices" => "The pattern parser borrows bytes and returns a borrowed text view only after UTF-8 validation.",
+        "borrowing" => "The writer mutates its own output state while borrowing the incoming byte buffer read-only.",
+        "structs-enums" => "The decompression builder stores configuration and exposes behavior through impl methods.",
+        "result-option" => "A missing decompressor is `None`; process and I/O failures remain `Result` errors.",
+        "collections" => "Config parsing pushes owned OsString values and parse errors into separate Vec collections.",
+        "iterators-traits" => "ripgrep describes the walk/search pipeline with iterator adapters and consumes it when searching.",
+        "generics-traits" => "Candidate<'a> ties borrowed path data to the input lifetime while staying generic over path-like values.",
+        "concurrency" => "Parallel workers send owned haystacks to one printing thread through a channel.",
         _ => lesson.demo.takeaway,
     }
 }

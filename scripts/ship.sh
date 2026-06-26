@@ -227,7 +227,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo llvm-cov -p learning_core --fail-under-lines 90 --summary-only
-(cd apps/web && trunk build --release)
+(cd apps/web && env -u NO_COLOR trunk build --release)
 
 if [[ -f ".env" ]]; then
   set -a

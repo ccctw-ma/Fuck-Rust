@@ -1034,6 +1034,27 @@ button {
   font-weight: 900;
 }
 
+.source-reading-card {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--mint) 28%, transparent);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--mint) 10%, transparent), transparent 56%),
+    color-mix(in srgb, var(--panel-strong) 48%, transparent);
+}
+
+.source-reading-row {
+  display: grid;
+  grid-template-columns: minmax(108px, 0.28fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+}
+
+.source-reading-row + .source-reading-row {
+  border-top: 1px solid color-mix(in srgb, var(--mint) 14%, transparent);
+}
+
 .guide-list {
   display: grid;
   gap: 10px;
@@ -1055,6 +1076,15 @@ button {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.7;
+}
+
+.strong-copy {
+  color: var(--text);
+  font-family:
+    ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .guide-step {
