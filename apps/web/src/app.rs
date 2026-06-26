@@ -1,7 +1,8 @@
 use learning_core::{exercise_by_id, exercises, lesson_progress, ProgressSnapshot};
 #[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{closure::Closure, JsCast};
-use web_sys::{HtmlInputElement, HtmlTextAreaElement, KeyboardEvent};
+use web_sys::PointerEvent;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -13,6 +14,46 @@ use crate::storage::{
 };
 
 const RAIL_COLLAPSE_WIDTH: f64 = 1060.0;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(module = "/src/monaco_playground.js")]
+extern "C" {
+    #[wasm_bindgen(js_name = createMonacoRustEditor)]
+    fn create_monaco_rust_editor(
+        container: web_sys::Element,
+        initial_value: &str,
+        on_change: &js_sys::Function,
+    ) -> wasm_bindgen::JsValue;
+
+    #[wasm_bindgen(js_name = getMonacoEditorValue)]
+    fn get_monaco_editor_value(editor: &wasm_bindgen::JsValue) -> String;
+
+    #[wasm_bindgen(js_name = layoutMonacoEditor)]
+    fn layout_monaco_editor(editor: &wasm_bindgen::JsValue);
+
+    #[wasm_bindgen(js_name = disposeMonacoEditor)]
+    fn dispose_monaco_editor(editor: &wasm_bindgen::JsValue);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn create_monaco_rust_editor(
+    _: web_sys::Element,
+    _: &str,
+    _: &js_sys::Function,
+) -> wasm_bindgen::JsValue {
+    wasm_bindgen::JsValue::NULL
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_monaco_editor_value(_: &wasm_bindgen::JsValue) -> String {
+    String::new()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn layout_monaco_editor(_: &wasm_bindgen::JsValue) {}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn dispose_monaco_editor(_: &wasm_bindgen::JsValue) {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Theme {
@@ -207,9 +248,10 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
     let code = use_state(default_playground_code);
     let output = use_state(|| t(props.language, "playground_ready").to_owned());
     let status = use_state(|| PlaygroundStatus::Ready);
-    let drawer_width = use_state(|| 560u32);
-    let suggestions_open = use_state(|| false);
-    let completions = filtered_rust_completions(&code);
+    let drawer_width = use_state(|| 640u32);
+    let is_resizing = use_state(|| false);
+    let editor_host = use_node_ref();
+    let monaco_editor = use_mut_ref(|| None::<wasm_bindgen::JsValue>);
     let drawer_class = if props.is_open {
         "playground-drawer is-open"
     } else {
@@ -228,32 +270,87 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
         PlaygroundStatus::Success => t(props.language, "playground_success"),
         PlaygroundStatus::Failed => t(props.language, "playground_failed"),
     };
-    let on_input = {
+    {
         let code = code.clone();
-        let suggestions_open = suggestions_open.clone();
-        Callback::from(move |event: InputEvent| {
-            let textarea: HtmlTextAreaElement = event.target_unchecked_into();
-            let next = textarea.value();
-            suggestions_open.set(!filtered_rust_completions(&next).is_empty());
-            code.set(next);
+        let editor_host = editor_host.clone();
+        let monaco_editor = monaco_editor.clone();
+        use_effect_with((), move |_| {
+            let Some(container) = editor_host.cast::<web_sys::Element>() else {
+                return Box::new(|| ()) as Box<dyn FnOnce()>;
+            };
+            let on_change = Closure::<dyn FnMut(String)>::wrap(Box::new(move |next: String| {
+                code.set(next);
+            }));
+            let editor = create_monaco_rust_editor(
+                container,
+                &default_playground_code(),
+                on_change.as_ref().unchecked_ref(),
+            );
+            *monaco_editor.borrow_mut() = Some(editor.clone());
+            on_change.forget();
+
+            Box::new(move || {
+                dispose_monaco_editor(&editor);
+            }) as Box<dyn FnOnce()>
+        });
+    }
+
+    {
+        let monaco_editor = monaco_editor.clone();
+        use_effect_with(*drawer_width, move |_| {
+            if let Some(editor) = monaco_editor.borrow().as_ref() {
+                layout_monaco_editor(editor);
+            }
+            || ()
+        });
+    }
+
+    let on_resize_start = {
+        let is_resizing = is_resizing.clone();
+        Callback::from(move |event: PointerEvent| {
+            event.prevent_default();
+            is_resizing.set(true);
         })
     };
-    let on_width_input = {
+    let on_resize_move = {
         let drawer_width = drawer_width.clone();
-        Callback::from(move |event: InputEvent| {
-            let input: HtmlInputElement = event.target_unchecked_into();
-            if let Ok(width) = input.value().parse::<u32>() {
-                drawer_width.set(width);
+        let is_resizing = is_resizing.clone();
+        let monaco_editor = monaco_editor.clone();
+        Callback::from(move |event: PointerEvent| {
+            if !*is_resizing {
+                return;
+            }
+            let viewport_width = web_sys::window()
+                .and_then(|window| window.inner_width().ok())
+                .and_then(|width| width.as_f64())
+                .unwrap_or(1024.0);
+            let max_width = (viewport_width - 28.0).max(420.0);
+            let next_width = (viewport_width - f64::from(event.client_x()))
+                .clamp(420.0, max_width)
+                .round() as u32;
+            drawer_width.set(next_width);
+            if let Some(editor) = monaco_editor.borrow().as_ref() {
+                layout_monaco_editor(editor);
             }
         })
     };
+    let on_resize_end = {
+        let is_resizing = is_resizing.clone();
+        Callback::from(move |_| is_resizing.set(false))
+    };
     let run_action = {
-        let code = code.clone();
         let output = output.clone();
         let status = status.clone();
         let language = props.language;
+        let monaco_editor = monaco_editor.clone();
+        let code = code.clone();
         Callback::from(move |()| {
-            let current_code = (*code).clone();
+            let current_code = monaco_editor
+                .borrow()
+                .as_ref()
+                .map(get_monaco_editor_value)
+                .unwrap_or_else(|| (*code).clone());
+            code.set(current_code.clone());
             output.set(t(language, "playground_running").to_owned());
             status.set(PlaygroundStatus::Running);
             run_playground_code(current_code, output.clone(), status.clone(), language);
@@ -263,36 +360,22 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
         let run_action = run_action.clone();
         Callback::from(move |_| run_action.emit(()))
     };
-    let on_keydown = {
-        let code = code.clone();
-        let run_action = run_action.clone();
-        let suggestions_open = suggestions_open.clone();
-        Callback::from(move |event: KeyboardEvent| {
-            if event.key() == "Tab" && *suggestions_open {
-                event.prevent_default();
-                if let Some(completion) = filtered_rust_completions(&code).first() {
-                    code.set(apply_completion(&code, completion.insert));
-                    suggestions_open.set(false);
-                }
-            } else if event.key() == "Tab" {
-                event.prevent_default();
-                let textarea: HtmlTextAreaElement = event.target_unchecked_into();
-                insert_text_at_cursor(&textarea, "    ");
-                code.set(textarea.value());
-            } else if event.key() == " " && event.ctrl_key() {
-                event.prevent_default();
-                suggestions_open.set(true);
-            } else if event.key() == "Escape" {
-                suggestions_open.set(false);
-            } else if event.key() == "Enter" && (event.ctrl_key() || event.meta_key()) {
-                event.prevent_default();
-                run_action.emit(());
-            }
-        })
-    };
-
     html! {
         <>
+            {
+                if *is_resizing {
+                    html! {
+                        <div
+                            class="playground-resize-capture"
+                            onpointermove={on_resize_move.clone()}
+                            onpointerup={on_resize_end.clone()}
+                            onpointercancel={on_resize_end.clone()}
+                        />
+                    }
+                } else {
+                    html! {}
+                }
+            }
             <button
                 class="playground-fab"
                 type="button"
@@ -302,7 +385,12 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
                 { if props.is_open { t(props.language, "playground_close") } else { t(props.language, "playground_open") } }
             </button>
             <aside class={drawer_class} style={drawer_style} aria-label={t(props.language, "playground_title")}>
-                <div class="playground-resize-rail" aria-hidden="true"></div>
+                <button
+                    class="playground-resize-rail"
+                    type="button"
+                    aria-label={t(props.language, "playground_resize")}
+                    onpointerdown={on_resize_start}
+                ></button>
                 <div class="playground-header">
                     <div>
                         <p class="eyebrow">{ "RUN" }</p>
@@ -311,71 +399,25 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
                     </div>
                     <button class="tiny-button" type="button" onclick={props.on_close.clone()}>{ "×" }</button>
                 </div>
-                <label class="playground-width-control">
-                    <span>{ t(props.language, "playground_width") }</span>
-                    <input
-                        type="range"
-                        min="420"
-                        max="980"
-                        step="10"
-                        value={drawer_width.to_string()}
-                        oninput={on_width_input}
-                    />
+                <div class="playground-resize-hint">
+                    <span>{ t(props.language, "playground_drag_resize") }</span>
                     <span>{ format!("{}px", *drawer_width) }</span>
-                </label>
+                </div>
                 <div class="playground-editor-shell">
                     <div class="playground-tabs">
                         <span class="playground-dot red"></span>
                         <span class="playground-dot amber"></span>
                         <span class="playground-dot green"></span>
                         <span>{ "main.rs" }</span>
-                        <span class="playground-tab-hint">{ "Rust · IntelliSense · Ctrl Space" }</span>
+                        <span class="playground-tab-hint">{ "Monaco · Rust · IntelliSense" }</span>
                     </div>
-                    <div class="playground-code-surface">
-                        <pre class="playground-highlight" aria-hidden="true"><code>{ render_rust_highlight(&code) }</code></pre>
-                        <textarea
-                            class="playground-editor"
-                            spellcheck="false"
-                            autocomplete="off"
-                            autocapitalize="off"
-                            value={(*code).clone()}
-                            oninput={on_input}
-                            onkeydown={on_keydown}
-                        />
-                        {
-                            if *suggestions_open && !completions.is_empty() {
-                                html! {
-                                    <div class="completion-panel" role="listbox" aria-label="Rust completions">
-                                        { for completions.iter().take(8).map(|completion| {
-                                            let code = code.clone();
-                                            let suggestions_open = suggestions_open.clone();
-                                            let insert = completion.insert;
-                                            html! {
-                                                <button
-                                                    type="button"
-                                                    class="completion-item"
-                                                    onclick={Callback::from(move |_| {
-                                                        code.set(apply_completion(&code, insert));
-                                                        suggestions_open.set(false);
-                                                    })}
-                                                >
-                                                    <span class="completion-label">{ completion.label }</span>
-                                                    <span class="completion-kind">{ completion.kind }</span>
-                                                </button>
-                                            }
-                                        }) }
-                                    </div>
-                                }
-                            } else {
-                                html! {}
-                            }
-                        }
-                    </div>
+                    <div class="playground-monaco-host" ref={editor_host}></div>
                 </div>
                 <div class="playground-actions">
                     <button
                         class="primary-button"
                         type="button"
+                        data-playground-run="true"
                         disabled={*status == PlaygroundStatus::Running}
                         onclick={run_code}
                     >
@@ -395,252 +437,6 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
 fn default_playground_code() -> String {
     "fn main() {\n    let mut count = 41;\n    count += 1;\n    println!(\"count = {count}\");\n}\n"
         .to_owned()
-}
-
-fn insert_text_at_cursor(textarea: &HtmlTextAreaElement, insert: &str) {
-    let value = textarea.value();
-    let start = textarea
-        .selection_start()
-        .ok()
-        .flatten()
-        .unwrap_or(value.len() as u32) as usize;
-    let end = textarea
-        .selection_end()
-        .ok()
-        .flatten()
-        .unwrap_or(start as u32) as usize;
-    let mut next = String::with_capacity(value.len() + insert.len());
-    next.push_str(&value[..start]);
-    next.push_str(insert);
-    next.push_str(&value[end..]);
-    textarea.set_value(&next);
-    let cursor = (start + insert.len()) as u32;
-    let _ = textarea.set_selection_range(cursor, cursor);
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct RustCompletion {
-    label: &'static str,
-    insert: &'static str,
-    kind: &'static str,
-}
-
-const RUST_COMPLETIONS: &[RustCompletion] = &[
-    RustCompletion {
-        label: "println!",
-        insert: "println!(\"{}\");",
-        kind: "macro",
-    },
-    RustCompletion {
-        label: "eprintln!",
-        insert: "eprintln!(\"{}\");",
-        kind: "macro",
-    },
-    RustCompletion {
-        label: "dbg!",
-        insert: "dbg!()",
-        kind: "macro",
-    },
-    RustCompletion {
-        label: "fn main",
-        insert: "fn main() {\n    \n}",
-        kind: "snippet",
-    },
-    RustCompletion {
-        label: "let mut",
-        insert: "let mut ",
-        kind: "keyword",
-    },
-    RustCompletion {
-        label: "match",
-        insert: "match value {\n    _ => (),\n}",
-        kind: "keyword",
-    },
-    RustCompletion {
-        label: "if let",
-        insert: "if let Some(value) = option {\n    \n}",
-        kind: "snippet",
-    },
-    RustCompletion {
-        label: "Result",
-        insert: "Result<(), Box<dyn std::error::Error>>",
-        kind: "type",
-    },
-    RustCompletion {
-        label: "Option",
-        insert: "Option",
-        kind: "type",
-    },
-    RustCompletion {
-        label: "String",
-        insert: "String::from(\"\")",
-        kind: "type",
-    },
-    RustCompletion {
-        label: "Vec",
-        insert: "Vec::new()",
-        kind: "type",
-    },
-    RustCompletion {
-        label: "impl",
-        insert: "impl ",
-        kind: "keyword",
-    },
-    RustCompletion {
-        label: "struct",
-        insert: "struct ",
-        kind: "keyword",
-    },
-    RustCompletion {
-        label: "enum",
-        insert: "enum ",
-        kind: "keyword",
-    },
-    RustCompletion {
-        label: "use std::",
-        insert: "use std::",
-        kind: "module",
-    },
-];
-
-fn filtered_rust_completions(code: &str) -> Vec<RustCompletion> {
-    let prefix = current_completion_prefix(code);
-    if prefix.is_empty() {
-        return RUST_COMPLETIONS.iter().take(6).copied().collect();
-    }
-    RUST_COMPLETIONS
-        .iter()
-        .filter(|completion| {
-            completion.label.starts_with(&prefix) || completion.insert.starts_with(&prefix)
-        })
-        .copied()
-        .collect()
-}
-
-fn current_completion_prefix(code: &str) -> String {
-    code.chars()
-        .rev()
-        .take_while(|character| {
-            character.is_ascii_alphanumeric() || *character == '_' || *character == '!'
-        })
-        .collect::<String>()
-        .chars()
-        .rev()
-        .collect()
-}
-
-fn apply_completion(code: &str, insert: &str) -> String {
-    let prefix = current_completion_prefix(code);
-    if prefix.is_empty() {
-        return format!("{code}{insert}");
-    }
-    let keep = code.len().saturating_sub(prefix.len());
-    format!("{}{}", &code[..keep], insert)
-}
-
-fn render_rust_highlight(code: &str) -> Html {
-    html! {
-        <>
-            { for code.split('\n').enumerate().map(|(index, line)| html! {
-                <span class="code-line">
-                    <span class="line-number">{ index + 1 }</span>
-                    <span class="line-code">{ render_rust_line(line) }</span>
-                </span>
-            }) }
-        </>
-    }
-}
-
-fn render_rust_line(line: &str) -> Html {
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    let mut chars = line.chars().peekable();
-    while let Some(character) = chars.next() {
-        if character == '"' {
-            if !current.is_empty() {
-                tokens.push(render_rust_token(&current));
-                current.clear();
-            }
-            let mut literal = String::from("\"");
-            for next in chars.by_ref() {
-                literal.push(next);
-                if next == '"' {
-                    break;
-                }
-            }
-            tokens.push(html! { <span class="token string">{ literal }</span> });
-        } else if character.is_ascii_alphanumeric() || character == '_' || character == '!' {
-            current.push(character);
-        } else {
-            if !current.is_empty() {
-                tokens.push(render_rust_token(&current));
-                current.clear();
-            }
-            tokens.push(html! { <span>{ character }</span> });
-        }
-    }
-    if !current.is_empty() {
-        tokens.push(render_rust_token(&current));
-    }
-    html! { <>{ for tokens }</> }
-}
-
-fn render_rust_token(token: &str) -> Html {
-    let class_name = if is_rust_keyword(token) {
-        "token keyword"
-    } else if token.ends_with('!') {
-        "token macro"
-    } else if token.chars().next().is_some_and(char::is_uppercase) {
-        "token type"
-    } else if token.chars().all(|character| character.is_ascii_digit()) {
-        "token number"
-    } else {
-        "token ident"
-    };
-    html! { <span class={class_name}>{ token.to_owned() }</span> }
-}
-
-fn is_rust_keyword(token: &str) -> bool {
-    matches!(
-        token,
-        "as" | "async"
-            | "await"
-            | "break"
-            | "const"
-            | "continue"
-            | "crate"
-            | "dyn"
-            | "else"
-            | "enum"
-            | "extern"
-            | "false"
-            | "fn"
-            | "for"
-            | "if"
-            | "impl"
-            | "in"
-            | "let"
-            | "loop"
-            | "match"
-            | "mod"
-            | "move"
-            | "mut"
-            | "pub"
-            | "ref"
-            | "return"
-            | "self"
-            | "Self"
-            | "static"
-            | "struct"
-            | "super"
-            | "trait"
-            | "true"
-            | "type"
-            | "unsafe"
-            | "use"
-            | "where"
-            | "while"
-    )
 }
 
 #[cfg(target_arch = "wasm32")]

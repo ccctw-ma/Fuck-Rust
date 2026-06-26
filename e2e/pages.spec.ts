@@ -62,10 +62,11 @@ test.describe('Rust Ladder pages', () => {
     const drawer = page.locator('.playground-drawer');
     await expect(drawer).toHaveClass(/is-open/);
     await expect(drawer.getByText('main.rs')).toBeVisible();
-    await expect(drawer.getByText(/IntelliSense/)).toBeVisible();
-    await expect(drawer.getByText(/面板宽度|Panel width/)).toBeVisible();
-    await expect(drawer.locator('.token.keyword').first()).toBeVisible();
-    await expect(drawer.locator('.playground-editor')).toHaveValue(/fn main\(\)/);
+    await expect(drawer.getByText(/Monaco · Rust · IntelliSense/)).toBeVisible();
+    await expect(drawer.getByText(/拖拽左侧边框调整宽度|Drag the left edge to resize/)).toBeVisible();
+    await expect(drawer.locator('.playground-resize-rail')).toBeVisible();
+    await expect(drawer.locator('.playground-monaco-host')).toBeVisible();
+    await expect(drawer.locator('.monaco-editor')).toBeVisible({ timeout: 20_000 });
     await expect(drawer.getByRole('button', { name: /运行代码|Run code/ })).toBeVisible();
     await expect(drawer.getByText(/运行输出|Output/)).toBeVisible();
   });

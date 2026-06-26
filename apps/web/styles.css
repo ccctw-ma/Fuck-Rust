@@ -1134,15 +1134,14 @@ button {
   right: 0;
   z-index: 38;
   display: grid;
-  grid-template-rows: auto auto minmax(280px, 1fr) auto minmax(150px, 0.58fr);
+  grid-template-rows: auto auto minmax(320px, 1fr) auto minmax(150px, 0.58fr);
   gap: 14px;
-  width: min(var(--playground-width, 560px), calc(100vw - 28px));
+  width: min(var(--playground-width, 640px), calc(100vw - 28px));
   min-width: 420px;
   max-width: calc(100vw - 28px);
   height: 100dvh;
   padding: 20px;
   overflow: auto;
-  resize: horizontal;
   border-left: 1px solid var(--line-strong);
   background:
     radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--mint) 16%, transparent), transparent 32%),
@@ -1158,10 +1157,38 @@ button {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 8px;
+  z-index: 4;
+  width: 12px;
+  padding: 0;
+  border: 0;
   cursor: ew-resize;
   background: linear-gradient(to right, color-mix(in srgb, var(--mint) 32%, transparent), transparent);
   opacity: 0.42;
+}
+
+.playground-resize-rail::after {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 3px;
+  height: 64px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rust) 68%, transparent);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.playground-resize-rail:hover,
+.playground-resize-rail:focus-visible {
+  opacity: 1;
+}
+
+.playground-resize-capture {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  cursor: ew-resize;
+  user-select: none;
 }
 
 .playground-drawer.is-open {
@@ -1189,22 +1216,18 @@ button {
   line-height: 1.65;
 }
 
-.playground-width-control {
+.playground-resize-hint {
   display: grid;
-  grid-template-columns: auto minmax(120px, 1fr) auto;
+  grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
   background: color-mix(in srgb, var(--panel-strong) 44%, transparent);
   font-size: 12px;
   font-weight: 850;
-}
-
-.playground-width-control input {
-  accent-color: var(--mint);
 }
 
 .playground-editor-shell,
@@ -1253,145 +1276,42 @@ button {
   background: #62c554;
 }
 
-.playground-code-surface {
+.playground-monaco-host {
   position: relative;
   height: calc(100% - 34px);
-  min-height: 280px;
+  min-height: 320px;
   overflow: hidden;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--amber) 7%, transparent) 1px, transparent 1px) 0 0 / 40px 40px,
     var(--code-bg);
 }
 
-.playground-highlight,
-.playground-editor {
-  position: absolute;
-  inset: 0;
+.playground-monaco-host.is-loading {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.playground-monaco-host .monaco-editor,
+.playground-monaco-host .monaco-editor-background,
+.playground-monaco-host .margin {
+  background-color: transparent !important;
+}
+
+.monaco-fallback {
   width: 100%;
   height: 100%;
-  padding: 18px 20px 18px 0;
+  padding: 18px 20px;
   border: 0;
   outline: none;
-  color: transparent;
+  color: var(--code-text);
   background: transparent;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 14px;
   line-height: 1.7;
-  caret-color: var(--mint);
-  overflow: auto;
   resize: none;
-  tab-size: 4;
-  white-space: pre;
-}
-
-.playground-highlight {
-  z-index: 0;
-  margin: 0;
-  pointer-events: none;
-  color: var(--code-text);
-}
-
-.playground-editor {
-  z-index: 1;
-}
-
-.code-line {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  min-height: 23.8px;
-}
-
-.line-number {
-  padding-right: 12px;
-  color: var(--faint);
-  text-align: right;
-  user-select: none;
-}
-
-.line-code {
-  min-width: max-content;
-}
-
-.token.keyword {
-  color: #c85528;
-  font-weight: 800;
-}
-
-.token.macro {
-  color: #8a63c7;
-  font-weight: 800;
-}
-
-.token.type {
-  color: #1976a2;
-  font-weight: 760;
-}
-
-.token.string {
-  color: #2f7f4f;
-}
-
-.token.number {
-  color: #aa5a00;
-}
-
-[data-theme="dark"] .token.keyword {
-  color: #ff8a55;
-}
-
-[data-theme="dark"] .token.macro {
-  color: #c39bff;
-}
-
-[data-theme="dark"] .token.type {
-  color: #7cd2ff;
-}
-
-[data-theme="dark"] .token.string {
-  color: #9bd77f;
-}
-
-[data-theme="dark"] .token.number {
-  color: #ffd166;
-}
-
-.completion-panel {
-  position: absolute;
-  top: 46px;
-  left: 64px;
-  z-index: 3;
-  display: grid;
-  width: min(320px, calc(100% - 84px));
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--panel-strong) 96%, var(--bg) 4%);
-  box-shadow: 0 20px 55px rgba(36, 24, 18, 0.22);
-}
-
-.completion-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 9px 12px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  color: var(--text);
-  background: transparent;
-  cursor: pointer;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  text-align: left;
-}
-
-.completion-item:hover,
-.completion-item:focus-visible {
-  background: color-mix(in srgb, var(--mint) 12%, transparent);
-}
-
-.completion-kind {
-  color: var(--faint);
-  font-size: 11px;
 }
 
 .playground-actions {
@@ -1451,9 +1371,9 @@ button {
 .ghost-button:focus-visible,
 .tiny-button:focus-visible,
 .option-button:focus-visible,
-.playground-fab:focus-visible,
-.playground-editor:focus-visible,
-.rail-item:focus-visible,
+  .playground-fab:focus-visible,
+  .playground-resize-rail:focus-visible,
+  .rail-item:focus-visible,
 .brand:focus-visible,
 .pill:focus-visible,
 .text-input:focus-visible {
