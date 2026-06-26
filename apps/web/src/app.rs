@@ -399,10 +399,6 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
                     </div>
                     <button class="tiny-button" type="button" onclick={props.on_close.clone()}>{ "×" }</button>
                 </div>
-                <div class="playground-resize-hint">
-                    <span>{ t(props.language, "playground_drag_resize") }</span>
-                    <span>{ format!("{}px", *drawer_width) }</span>
-                </div>
                 <div class="playground-editor-shell">
                     <div class="playground-tabs">
                         <span class="playground-dot red"></span>

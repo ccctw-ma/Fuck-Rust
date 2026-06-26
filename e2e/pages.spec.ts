@@ -68,7 +68,7 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(drawer).toHaveClass(/is-open/);
     await expect(drawer.getByText('main.rs')).toBeVisible();
     await expect(drawer.getByText(/Monaco · Rust · IntelliSense/)).toBeVisible();
-    await expect(drawer.getByText(/拖拽左侧边框调整宽度|Drag the left edge to resize/)).toBeVisible();
+    await expect(drawer.getByText(/拖拽左侧边框调整宽度|Drag the left edge to resize/)).not.toBeVisible();
     await expect(drawer.locator('.playground-resize-rail')).toBeVisible();
     await expect(drawer.locator('.playground-monaco-host')).toBeVisible();
     await expect(drawer.locator('.monaco-editor')).toBeVisible({ timeout: 20_000 });
