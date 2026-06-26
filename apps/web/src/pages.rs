@@ -578,44 +578,43 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
                 book_label={t(language, "book_ref")}
                 guide_title={t(language, "quick_guide")}
                 goals_title={t(language, "learning_goals")}
-                guide={lesson_guide(lesson, language).to_vec()}
-                goals={lesson.goals.iter().enumerate().map(|(index, _)| lesson_goal(lesson, index, language)).collect::<Vec<_>>()}
+                guide={enriched_lesson_guide(exercise, lesson, language)}
+                goals={enriched_lesson_goals(exercise, lesson, language)}
             />
-            { render_pre_question_guide(exercise, lesson, language) }
         </>
     }
 }
 
-fn render_pre_question_guide(exercise: &Exercise, lesson: &Lesson, language: Language) -> Html {
-    let book_points = lesson_mental_model(lesson, language);
-    let exercise_link = exercise_book_link(exercise, lesson, language);
-    let answer_hint = exercise_answer_hint(exercise, language);
+fn enriched_lesson_guide(exercise: &Exercise, lesson: &Lesson, language: Language) -> Vec<String> {
+    let mut guide = lesson_guide(lesson, language)
+        .iter()
+        .map(|item| (*item).to_owned())
+        .collect::<Vec<_>>();
+    guide.extend(lesson_mental_model(lesson, language));
+    guide.push(exercise_focus_copy(exercise, lesson, language));
+    guide.push(exercise_book_link(exercise, lesson, language));
+    guide.push(exercise_answer_hint(exercise, language).to_owned());
+    guide
+}
 
-    html! {
-        <aside class="primer-panel" aria-label={t(language, "primer_title")}>
-            <div class="demo-heading">
-                <p class="demo-title">{ t(language, "primer_title") }</p>
-                <span class="pill strong">{ exercise_level_label(exercise, language) }</span>
-            </div>
-            <p class="primer-lead">{ exercise_focus_copy(exercise, lesson, language) }</p>
-            <div class="primer-module">
-                <div class="primer-module-row primer-book-row">
-                    <p class="guide-title">{ t(language, "book_points") }</p>
-                    <div class="primer-copy-stack">
-                        { for book_points.into_iter().take(2).map(|copy| html! { <p class="guide-copy">{ copy }</p> }) }
-                    </div>
-                </div>
-                <div class="primer-module-row">
-                    <p class="guide-title">{ t(language, "exercise_link") }</p>
-                    <p class="guide-copy">{ exercise_link }</p>
-                </div>
-                <div class="primer-module-row primer-answer-row">
-                    <p class="guide-title">{ t(language, "answer_hint") }</p>
-                    <p class="guide-copy">{ answer_hint }</p>
-                </div>
-            </div>
-        </aside>
-    }
+fn enriched_lesson_goals(exercise: &Exercise, lesson: &Lesson, language: Language) -> Vec<String> {
+    let mut goals = lesson
+        .goals
+        .iter()
+        .enumerate()
+        .map(|(index, _)| lesson_goal(lesson, index, language).to_owned())
+        .collect::<Vec<_>>();
+    goals.push(format!(
+        "{}：{}",
+        t(language, "exercise_link"),
+        exercise_title(exercise, language)
+    ));
+    goals.push(format!(
+        "{}：{}",
+        t(language, "answer_hint"),
+        exercise_hint(exercise, language)
+    ));
+    goals
 }
 
 fn exercise_focus_copy(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {

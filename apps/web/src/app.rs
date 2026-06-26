@@ -1,7 +1,7 @@
 use learning_core::{exercise_by_id, exercises, lesson_progress, ProgressSnapshot};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{closure::Closure, JsCast};
-use web_sys::{HtmlTextAreaElement, KeyboardEvent};
+use web_sys::{HtmlInputElement, HtmlTextAreaElement, KeyboardEvent};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -207,11 +207,15 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
     let code = use_state(default_playground_code);
     let output = use_state(|| t(props.language, "playground_ready").to_owned());
     let status = use_state(|| PlaygroundStatus::Ready);
+    let drawer_width = use_state(|| 560u32);
+    let suggestions_open = use_state(|| false);
+    let completions = filtered_rust_completions(&code);
     let drawer_class = if props.is_open {
         "playground-drawer is-open"
     } else {
         "playground-drawer"
     };
+    let drawer_style = format!("--playground-width: {}px;", *drawer_width);
     let status_class = match *status {
         PlaygroundStatus::Ready => "playground-status",
         PlaygroundStatus::Running => "playground-status running",
@@ -226,9 +230,21 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
     };
     let on_input = {
         let code = code.clone();
+        let suggestions_open = suggestions_open.clone();
         Callback::from(move |event: InputEvent| {
             let textarea: HtmlTextAreaElement = event.target_unchecked_into();
-            code.set(textarea.value());
+            let next = textarea.value();
+            suggestions_open.set(!filtered_rust_completions(&next).is_empty());
+            code.set(next);
+        })
+    };
+    let on_width_input = {
+        let drawer_width = drawer_width.clone();
+        Callback::from(move |event: InputEvent| {
+            let input: HtmlInputElement = event.target_unchecked_into();
+            if let Ok(width) = input.value().parse::<u32>() {
+                drawer_width.set(width);
+            }
         })
     };
     let run_action = {
@@ -250,12 +266,24 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
     let on_keydown = {
         let code = code.clone();
         let run_action = run_action.clone();
+        let suggestions_open = suggestions_open.clone();
         Callback::from(move |event: KeyboardEvent| {
-            if event.key() == "Tab" {
+            if event.key() == "Tab" && *suggestions_open {
+                event.prevent_default();
+                if let Some(completion) = filtered_rust_completions(&code).first() {
+                    code.set(apply_completion(&code, completion.insert));
+                    suggestions_open.set(false);
+                }
+            } else if event.key() == "Tab" {
                 event.prevent_default();
                 let textarea: HtmlTextAreaElement = event.target_unchecked_into();
                 insert_text_at_cursor(&textarea, "    ");
                 code.set(textarea.value());
+            } else if event.key() == " " && event.ctrl_key() {
+                event.prevent_default();
+                suggestions_open.set(true);
+            } else if event.key() == "Escape" {
+                suggestions_open.set(false);
             } else if event.key() == "Enter" && (event.ctrl_key() || event.meta_key()) {
                 event.prevent_default();
                 run_action.emit(());
@@ -273,7 +301,8 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
             >
                 { if props.is_open { t(props.language, "playground_close") } else { t(props.language, "playground_open") } }
             </button>
-            <aside class={drawer_class} aria-label={t(props.language, "playground_title")}>
+            <aside class={drawer_class} style={drawer_style} aria-label={t(props.language, "playground_title")}>
+                <div class="playground-resize-rail" aria-hidden="true"></div>
                 <div class="playground-header">
                     <div>
                         <p class="eyebrow">{ "RUN" }</p>
@@ -282,20 +311,66 @@ fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
                     </div>
                     <button class="tiny-button" type="button" onclick={props.on_close.clone()}>{ "×" }</button>
                 </div>
+                <label class="playground-width-control">
+                    <span>{ t(props.language, "playground_width") }</span>
+                    <input
+                        type="range"
+                        min="420"
+                        max="980"
+                        step="10"
+                        value={drawer_width.to_string()}
+                        oninput={on_width_input}
+                    />
+                    <span>{ format!("{}px", *drawer_width) }</span>
+                </label>
                 <div class="playground-editor-shell">
                     <div class="playground-tabs">
                         <span class="playground-dot red"></span>
                         <span class="playground-dot amber"></span>
                         <span class="playground-dot green"></span>
                         <span>{ "main.rs" }</span>
+                        <span class="playground-tab-hint">{ "Rust · IntelliSense · Ctrl Space" }</span>
                     </div>
-                    <textarea
-                        class="playground-editor"
-                        spellcheck="false"
-                        value={(*code).clone()}
-                        oninput={on_input}
-                        onkeydown={on_keydown}
-                    />
+                    <div class="playground-code-surface">
+                        <pre class="playground-highlight" aria-hidden="true"><code>{ render_rust_highlight(&code) }</code></pre>
+                        <textarea
+                            class="playground-editor"
+                            spellcheck="false"
+                            autocomplete="off"
+                            autocapitalize="off"
+                            value={(*code).clone()}
+                            oninput={on_input}
+                            onkeydown={on_keydown}
+                        />
+                        {
+                            if *suggestions_open && !completions.is_empty() {
+                                html! {
+                                    <div class="completion-panel" role="listbox" aria-label="Rust completions">
+                                        { for completions.iter().take(8).map(|completion| {
+                                            let code = code.clone();
+                                            let suggestions_open = suggestions_open.clone();
+                                            let insert = completion.insert;
+                                            html! {
+                                                <button
+                                                    type="button"
+                                                    class="completion-item"
+                                                    onclick={Callback::from(move |_| {
+                                                        code.set(apply_completion(&code, insert));
+                                                        suggestions_open.set(false);
+                                                    })}
+                                                >
+                                                    <span class="completion-label">{ completion.label }</span>
+                                                    <span class="completion-kind">{ completion.kind }</span>
+                                                </button>
+                                            }
+                                        }) }
+                                    </div>
+                                }
+                            } else {
+                                html! {}
+                            }
+                        }
+                    </div>
                 </div>
                 <div class="playground-actions">
                     <button
@@ -341,6 +416,231 @@ fn insert_text_at_cursor(textarea: &HtmlTextAreaElement, insert: &str) {
     textarea.set_value(&next);
     let cursor = (start + insert.len()) as u32;
     let _ = textarea.set_selection_range(cursor, cursor);
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RustCompletion {
+    label: &'static str,
+    insert: &'static str,
+    kind: &'static str,
+}
+
+const RUST_COMPLETIONS: &[RustCompletion] = &[
+    RustCompletion {
+        label: "println!",
+        insert: "println!(\"{}\");",
+        kind: "macro",
+    },
+    RustCompletion {
+        label: "eprintln!",
+        insert: "eprintln!(\"{}\");",
+        kind: "macro",
+    },
+    RustCompletion {
+        label: "dbg!",
+        insert: "dbg!()",
+        kind: "macro",
+    },
+    RustCompletion {
+        label: "fn main",
+        insert: "fn main() {\n    \n}",
+        kind: "snippet",
+    },
+    RustCompletion {
+        label: "let mut",
+        insert: "let mut ",
+        kind: "keyword",
+    },
+    RustCompletion {
+        label: "match",
+        insert: "match value {\n    _ => (),\n}",
+        kind: "keyword",
+    },
+    RustCompletion {
+        label: "if let",
+        insert: "if let Some(value) = option {\n    \n}",
+        kind: "snippet",
+    },
+    RustCompletion {
+        label: "Result",
+        insert: "Result<(), Box<dyn std::error::Error>>",
+        kind: "type",
+    },
+    RustCompletion {
+        label: "Option",
+        insert: "Option",
+        kind: "type",
+    },
+    RustCompletion {
+        label: "String",
+        insert: "String::from(\"\")",
+        kind: "type",
+    },
+    RustCompletion {
+        label: "Vec",
+        insert: "Vec::new()",
+        kind: "type",
+    },
+    RustCompletion {
+        label: "impl",
+        insert: "impl ",
+        kind: "keyword",
+    },
+    RustCompletion {
+        label: "struct",
+        insert: "struct ",
+        kind: "keyword",
+    },
+    RustCompletion {
+        label: "enum",
+        insert: "enum ",
+        kind: "keyword",
+    },
+    RustCompletion {
+        label: "use std::",
+        insert: "use std::",
+        kind: "module",
+    },
+];
+
+fn filtered_rust_completions(code: &str) -> Vec<RustCompletion> {
+    let prefix = current_completion_prefix(code);
+    if prefix.is_empty() {
+        return RUST_COMPLETIONS.iter().take(6).copied().collect();
+    }
+    RUST_COMPLETIONS
+        .iter()
+        .filter(|completion| {
+            completion.label.starts_with(&prefix) || completion.insert.starts_with(&prefix)
+        })
+        .copied()
+        .collect()
+}
+
+fn current_completion_prefix(code: &str) -> String {
+    code.chars()
+        .rev()
+        .take_while(|character| {
+            character.is_ascii_alphanumeric() || *character == '_' || *character == '!'
+        })
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect()
+}
+
+fn apply_completion(code: &str, insert: &str) -> String {
+    let prefix = current_completion_prefix(code);
+    if prefix.is_empty() {
+        return format!("{code}{insert}");
+    }
+    let keep = code.len().saturating_sub(prefix.len());
+    format!("{}{}", &code[..keep], insert)
+}
+
+fn render_rust_highlight(code: &str) -> Html {
+    html! {
+        <>
+            { for code.split('\n').enumerate().map(|(index, line)| html! {
+                <span class="code-line">
+                    <span class="line-number">{ index + 1 }</span>
+                    <span class="line-code">{ render_rust_line(line) }</span>
+                </span>
+            }) }
+        </>
+    }
+}
+
+fn render_rust_line(line: &str) -> Html {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut chars = line.chars().peekable();
+    while let Some(character) = chars.next() {
+        if character == '"' {
+            if !current.is_empty() {
+                tokens.push(render_rust_token(&current));
+                current.clear();
+            }
+            let mut literal = String::from("\"");
+            for next in chars.by_ref() {
+                literal.push(next);
+                if next == '"' {
+                    break;
+                }
+            }
+            tokens.push(html! { <span class="token string">{ literal }</span> });
+        } else if character.is_ascii_alphanumeric() || character == '_' || character == '!' {
+            current.push(character);
+        } else {
+            if !current.is_empty() {
+                tokens.push(render_rust_token(&current));
+                current.clear();
+            }
+            tokens.push(html! { <span>{ character }</span> });
+        }
+    }
+    if !current.is_empty() {
+        tokens.push(render_rust_token(&current));
+    }
+    html! { <>{ for tokens }</> }
+}
+
+fn render_rust_token(token: &str) -> Html {
+    let class_name = if is_rust_keyword(token) {
+        "token keyword"
+    } else if token.ends_with('!') {
+        "token macro"
+    } else if token.chars().next().is_some_and(char::is_uppercase) {
+        "token type"
+    } else if token.chars().all(|character| character.is_ascii_digit()) {
+        "token number"
+    } else {
+        "token ident"
+    };
+    html! { <span class={class_name}>{ token.to_owned() }</span> }
+}
+
+fn is_rust_keyword(token: &str) -> bool {
+    matches!(
+        token,
+        "as" | "async"
+            | "await"
+            | "break"
+            | "const"
+            | "continue"
+            | "crate"
+            | "dyn"
+            | "else"
+            | "enum"
+            | "extern"
+            | "false"
+            | "fn"
+            | "for"
+            | "if"
+            | "impl"
+            | "in"
+            | "let"
+            | "loop"
+            | "match"
+            | "mod"
+            | "move"
+            | "mut"
+            | "pub"
+            | "ref"
+            | "return"
+            | "self"
+            | "Self"
+            | "static"
+            | "struct"
+            | "super"
+            | "trait"
+            | "true"
+            | "type"
+            | "unsafe"
+            | "use"
+            | "where"
+            | "while"
+    )
 }
 
 #[cfg(target_arch = "wasm32")]

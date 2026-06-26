@@ -62,20 +62,22 @@ test.describe('Rust Ladder pages', () => {
     const drawer = page.locator('.playground-drawer');
     await expect(drawer).toHaveClass(/is-open/);
     await expect(drawer.getByText('main.rs')).toBeVisible();
+    await expect(drawer.getByText(/IntelliSense/)).toBeVisible();
+    await expect(drawer.getByText(/面板宽度|Panel width/)).toBeVisible();
+    await expect(drawer.locator('.token.keyword').first()).toBeVisible();
     await expect(drawer.locator('.playground-editor')).toHaveValue(/fn main\(\)/);
     await expect(drawer.getByRole('button', { name: /运行代码|Run code/ })).toBeVisible();
     await expect(drawer.getByText(/运行输出|Output/)).toBeVisible();
   });
 
-  test('lesson exercise includes a complete pre-question mental model', async ({ page }) => {
+  test('lesson exercise folds mental model into the richer learn-first module', async ({ page }) => {
     await page.goto('/exercise/enum-if-let-method');
 
-    const primer = page.locator('.primer-panel');
-    await expect(page.getByText('答题前知识模块')).toBeVisible();
-    await expect(primer.getByText('Rust Book 知识点')).toBeVisible();
-    await expect(primer.getByText(/Message::Quit/)).toBeVisible();
-    await expect(primer.getByText('这道题考什么')).toBeVisible();
-    await expect(primer.getByText('答题提示')).toBeVisible();
+    const demo = page.locator('.demo-panel');
+    await expect(page.getByText('答题前知识模块')).not.toBeVisible();
+    await expect(demo.getByText('先学这个')).toBeVisible();
+    await expect(demo.getByText(/Message::Quit/).first()).toBeVisible();
+    await expect(demo.getByText(/答题提示/)).toBeVisible();
     await expect(page.getByText(/enum Message \{ Quit/)).toBeVisible();
   });
 

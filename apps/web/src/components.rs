@@ -218,8 +218,8 @@ pub struct DemoBlockProps {
     pub book_label: &'static str,
     pub guide_title: &'static str,
     pub goals_title: &'static str,
-    pub guide: Vec<&'static str>,
-    pub goals: Vec<&'static str>,
+    pub guide: Vec<String>,
+    pub goals: Vec<String>,
 }
 
 #[function_component(DemoBlock)]
@@ -239,14 +239,14 @@ pub fn demo_block(props: &DemoBlockProps) -> Html {
             </div>
             <div class="guide-list">
                 <p class="guide-title">{ props.guide_title }</p>
-                { for props.guide.iter().map(|copy| html! { <p class="guide-copy">{ *copy }</p> }) }
+                { for props.guide.iter().map(|copy| html! { <p class="guide-copy">{ copy }</p> }) }
             </div>
             <div class="guide-list">
                 <p class="guide-title">{ props.goals_title }</p>
                 { for props.goals.iter().enumerate().map(|(index, goal)| html! {
                     <p class="guide-step">
                         <span>{ format!("{:02}", index + 1) }</span>
-                        { *goal }
+                        { goal }
                     </p>
                 }) }
             </div>
