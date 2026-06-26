@@ -38,6 +38,7 @@ impl Stage {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Demo {
     pub title: &'static str,
+    pub source_url: &'static str,
     pub code: &'static str,
     pub output: &'static str,
     pub takeaway: &'static str,
@@ -136,6 +137,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
         demo: Demo {
             title: "ripgrep: crates/core/main.rs",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L43-L66",
             code: "fn main() -> ExitCode {\n    match run(flags::parse()) {\n        Ok(code) => code,\n        Err(err) => {\n            eprintln_locked!(\"{:#}\", err);\n            ExitCode::from(2)\n        }\n    }\n}",
             output: "Ok(code) returns code; Err returns ExitCode 2",
             takeaway: "这段真实入口代码把 Rust Book 的 match 表达式、尾表达式和宏调用放在一起：分支最后一行就是整个函数要返回的退出码。",
@@ -173,6 +175,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch06-02-match.html",
         demo: Demo {
             title: "ripgrep: run 里的模式分发",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L77-L100",
             code: "let matched = match args.mode() {\n    Mode::Search(_) if !args.matches_possible() => false,\n    Mode::Search(mode) if args.threads() == 1 => search(&args, mode)?,\n    Mode::Search(mode) => search_parallel(&args, mode)?,\n    Mode::Files if args.threads() == 1 => files(&args)?,\n    Mode::Files => files_parallel(&args)?,\n    Mode::Types => return types(&args),\n    Mode::Generate(mode) => return generate(mode),\n};",
             output: "matched controls the final ExitCode",
             takeaway: "ripgrep 用 match 把 CLI 模式分派到不同执行路径；guard 负责细分条件，所有非 return 分支都产出 bool。",
@@ -210,6 +213,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch03-02-data-types.html",
         demo: Demo {
             title: "ripgrep: crates/cli/src/pattern.rs",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/pattern.rs#L141-L158",
             code: "pub fn patterns_from_reader<R: io::Read>(rdr: R) -> io::Result<Vec<String>> {\n    let mut patterns = vec![];\n    let mut line_number = 0;\n    io::BufReader::new(rdr).for_byte_line(|line| {\n        line_number += 1;\n        match pattern_from_bytes(line) {\n            Ok(pattern) => {\n                patterns.push(pattern.to_string());\n                Ok(true)\n            }\n            Err(err) => Err(io::Error::new(io::ErrorKind::Other, err)),\n        }\n    })?;\n    Ok(patterns)\n}",
             output: "Ok(Vec<String>) or io::Error",
             takeaway: "函数签名已经说明输入是任何 io::Read，输出是 `io::Result<Vec<String>>`；最后的 `Ok(patterns)` 是真实业务返回值。",
@@ -247,6 +251,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
         demo: Demo {
             title: "ripgrep: process stdout take",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/process.rs#L218-L242",
             code: "let stdout = match self.child.stdout.take() {\n    None => return Ok(()),\n    Some(stdout) => stdout,\n};\ndrop(stdout);\nlet status = self.child.wait()?;",
             output: "stdout is moved out, then the child process is waited on",
             takeaway: "`take()` 把 Option 里的 stdout 移出来并留下 None，后续不会再次拥有同一个管道；这就是工程代码里的所有权转移。",
@@ -284,6 +289,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch04-03-slices.html",
         demo: Demo {
             title: "ripgrep: bytes to pattern str",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/pattern.rs#L67-L74",
             code: "fn pattern_from_bytes(pattern: &[u8]) -> Result<&str, InvalidPatternError> {\n    match std::str::from_utf8(pattern) {\n        Ok(pattern) => Ok(pattern),\n        Err(_) => Err(InvalidPatternError(())),\n    }\n}",
             output: "Ok(&str) when bytes are valid UTF-8",
             takeaway: "`&[u8]` 和 `&str` 都是不拥有数据的切片；ripgrep 只是在校验后把同一段输入看成文本模式。",
@@ -321,6 +327,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
         demo: Demo {
             title: "ripgrep: crates/cli/src/wtr.rs",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/wtr.rs#L67-L87",
             code: "impl io::Write for StandardStream {\n    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {\n        match self.0 {\n            termcolor::StandardStream::NoColor(ref mut wtr) => wtr.write(buf),\n            termcolor::StandardStream::NoColorLock(ref mut wtr) => wtr.write(buf),\n            termcolor::StandardStream::Print(ref mut wtr) => wtr.write(buf),\n        }\n    }\n}",
             output: "writer mutates itself; buf is only borrowed",
             takeaway: "`&mut self` 让 writer 能写入内部状态，`buf: &[u8]` 只是借来读取；这正是 Rust Book 借用规则在输出层的应用。",
@@ -358,6 +365,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
         demo: Demo {
             title: "ripgrep: DecompressionMatcherBuilder",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/decompress.rs#L15-L45",
             code: "pub struct DecompressionMatcherBuilder {\n    commands: Vec<DecompressionCommand>,\n    defaults: bool,\n}\n\nimpl DecompressionMatcherBuilder {\n    pub fn new() -> DecompressionMatcherBuilder {\n        DecompressionMatcherBuilder { commands: vec![], defaults: true }\n    }\n\n    pub fn defaults(&mut self, yes: bool) -> &mut DecompressionMatcherBuilder {\n        self.defaults = yes;\n        self\n    }\n}",
             output: "builder stores state, then returns &mut self for chaining",
             takeaway: "struct 承载配置数据，impl 定义行为；`&mut self` 方法修改 builder 后再把自己借回去，方便链式配置。",
@@ -395,6 +403,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html",
         demo: Demo {
             title: "ripgrep: decompressor lookup",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/decompress.rs#L179-L187",
             code: "pub fn command<P: AsRef<Path>>(&self, path: P) -> Option<Command> {\n    if let Some(i) = self.globs.matches(path).into_iter().next_back() {\n        let decomp_cmd = &self.commands[i];\n        let mut cmd = Command::new(&decomp_cmd.bin);\n        cmd.args(&decomp_cmd.args);\n        return Some(cmd);\n    }\n    None\n}",
             output: "Some(Command) or None",
             takeaway: "没有匹配的解压器不是异常，而是 `None`；真正的 I/O 或进程问题才进入 `Result` 错误路径。",
@@ -432,6 +441,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
         demo: Demo {
             title: "ripgrep: config args parser",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/flags/config.rs#L84-L108",
             code: "fn parse_reader<R: std::io::Read>(\n    rdr: R,\n) -> anyhow::Result<(Vec<OsString>, Vec<anyhow::Error>)> {\n    let mut bufrdr = std::io::BufReader::new(rdr);\n    let (mut args, mut errs) = (vec![], vec![]);\n    bufrdr.for_byte_line_with_terminator(|line| {\n        match line.to_os_str() {\n            Ok(osstr) => args.push(osstr.to_os_string()),\n            Err(err) => errs.push(anyhow::anyhow!(\"{err}\")),\n        }\n        Ok(true)\n    })?;\n    Ok((args, errs))\n}",
             output: "returns collected args and parse errors",
             takeaway: "ripgrep 把配置文件每一行转成拥有所有权的 OsString 后 push 进 Vec，同时把解析错误收集到另一个 Vec。",
@@ -469,6 +479,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch13-02-iterators.html",
         demo: Demo {
             title: "ripgrep: search iterator pipeline",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L107-L151",
             code: "let unsorted = args\n    .walk_builder()?\n    .build()\n    .filter_map(|result| haystack_builder.build_from_result(result));\nlet haystacks = args.sort(unsorted);\n\nfor haystack in haystacks {\n    let search_result = searcher.search(&haystack)?;\n    matched = matched || search_result.has_match();\n}",
             output: "walk entries become searchable haystacks",
             takeaway: "目录遍历先产生迭代器，`filter_map` 丢掉不可搜索项并提取 Haystack，最后 for 循环才真正消费它。",
@@ -506,6 +517,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch10-00-generics.html",
         demo: Demo {
             title: "ripgrep: globset Candidate<'a>",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L599-L619",
             code: "pub struct Candidate<'a> {\n    path: Cow<'a, [u8]>,\n    basename: Option<usize>,\n}\n\nimpl<'a> Candidate<'a> {\n    pub fn new<P: AsRef<Path> + ?Sized>(path: &'a P) -> Candidate<'a> {\n        Candidate::new_candidate(path.as_ref(), false)\n    }\n}",
             output: "Candidate borrows path data for lifetime 'a",
             takeaway: "泛型让 new 接收多种 path-like 输入；生命周期 `'a` 说明 Candidate 里借用的数据不能比传入 path 活得更久。",
@@ -543,6 +555,7 @@ pub const LESSONS: &[Lesson] = &[
         book_url: "https://doc.rust-lang.org/book/ch16-00-concurrency.html",
         demo: Demo {
             title: "ripgrep: files_parallel",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L271-L326",
             code: "let (tx, rx) = mpsc::channel::<crate::haystack::Haystack>();\nlet print_thread = thread::spawn(move || -> std::io::Result<()> {\n    for haystack in rx.iter() {\n        path_printer.write(haystack.path())?;\n    }\n    Ok(())\n});\n\nlet tx = tx.clone();\nmatch tx.send(haystack) {\n    Ok(_) => WalkState::Continue,\n    Err(_) => WalkState::Quit,\n}",
             output: "workers send haystacks; one thread prints paths",
             takeaway: "ripgrep 用 channel 转移 Haystack 所有权到打印线程，避免多个 worker 同时写 stdout。",

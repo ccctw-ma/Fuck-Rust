@@ -51,6 +51,20 @@ test.describe('Rust Ladder pages', () => {
     await expect(page.getByText(/Rust 默认让绑定不可变/)).toBeVisible();
     await expect(page.getByText('掌握目标')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Rust Book' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /查看 ripgrep 源码/ })).toHaveAttribute('href', /github\.com\/BurntSushi\/ripgrep/);
+  });
+
+  test('right drawer exposes a VS Code-like Rust playground', async ({ page }) => {
+    await page.goto('/learn');
+
+    await page.getByRole('button', { name: /打开 Playground|Open Playground/ }).click();
+
+    const drawer = page.locator('.playground-drawer');
+    await expect(drawer).toHaveClass(/is-open/);
+    await expect(drawer.getByText('main.rs')).toBeVisible();
+    await expect(drawer.locator('.playground-editor')).toHaveValue(/fn main\(\)/);
+    await expect(drawer.getByRole('button', { name: /运行代码|Run code/ })).toBeVisible();
+    await expect(drawer.getByText(/运行输出|Output/)).toBeVisible();
   });
 
   test('lesson exercise includes a complete pre-question mental model', async ({ page }) => {

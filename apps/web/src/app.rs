@@ -1,11 +1,12 @@
 use learning_core::{exercise_by_id, exercises, lesson_progress, ProgressSnapshot};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{closure::Closure, JsCast};
+use web_sys::{HtmlTextAreaElement, KeyboardEvent};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::components::{Header, SideRail};
-use crate::i18n::Language;
+use crate::i18n::{t, Language};
 use crate::pages::{CardsPage, ExercisePage, HomePage, LearnPage, NotFoundPage, StatsPage};
 use crate::storage::{
     load_language, load_progress, load_theme, save_language, save_progress, save_theme,
@@ -89,6 +90,7 @@ fn app_shell() -> Html {
     let language = use_state(load_language);
     let theme = use_state(load_theme);
     let rail_open = use_state(|| !viewport_is_compact());
+    let playground_open = use_state(|| false);
     let handle = ProgressHandle {
         snapshot: progress.clone(),
     };
@@ -118,6 +120,14 @@ fn app_shell() -> Html {
             save_theme(next);
             theme.set(next);
         })
+    };
+    let on_playground_toggle = {
+        let playground_open = playground_open.clone();
+        Callback::from(move |_| playground_open.set(!*playground_open))
+    };
+    let on_playground_close = {
+        let playground_open = playground_open.clone();
+        Callback::from(move |_| playground_open.set(false))
     };
     let on_rail_toggle = {
         let rail_open = rail_open.clone();
@@ -150,6 +160,7 @@ fn app_shell() -> Html {
                     theme={active_theme}
                     on_language_toggle={on_language_toggle}
                     on_theme_toggle={on_theme_toggle}
+                    on_playground_toggle={on_playground_toggle.clone()}
                 />
                 <div class="shell-grid">
                     <SideRail
@@ -164,9 +175,271 @@ fn app_shell() -> Html {
                         <Switch<Route> render={move |route| switch(route, handle.clone(), active_language)} />
                     </main>
                 </div>
+                <PlaygroundDrawer
+                    language={active_language}
+                    is_open={*playground_open}
+                    on_toggle={on_playground_toggle}
+                    on_close={on_playground_close}
+                />
             </div>
         </div>
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum PlaygroundStatus {
+    Ready,
+    Running,
+    Success,
+    Failed,
+}
+
+#[derive(Properties, PartialEq)]
+struct PlaygroundDrawerProps {
+    language: Language,
+    is_open: bool,
+    on_toggle: Callback<MouseEvent>,
+    on_close: Callback<MouseEvent>,
+}
+
+#[function_component(PlaygroundDrawer)]
+fn playground_drawer(props: &PlaygroundDrawerProps) -> Html {
+    let code = use_state(default_playground_code);
+    let output = use_state(|| t(props.language, "playground_ready").to_owned());
+    let status = use_state(|| PlaygroundStatus::Ready);
+    let drawer_class = if props.is_open {
+        "playground-drawer is-open"
+    } else {
+        "playground-drawer"
+    };
+    let status_class = match *status {
+        PlaygroundStatus::Ready => "playground-status",
+        PlaygroundStatus::Running => "playground-status running",
+        PlaygroundStatus::Success => "playground-status success",
+        PlaygroundStatus::Failed => "playground-status failed",
+    };
+    let status_label = match *status {
+        PlaygroundStatus::Ready => t(props.language, "playground_ready"),
+        PlaygroundStatus::Running => t(props.language, "playground_running"),
+        PlaygroundStatus::Success => t(props.language, "playground_success"),
+        PlaygroundStatus::Failed => t(props.language, "playground_failed"),
+    };
+    let on_input = {
+        let code = code.clone();
+        Callback::from(move |event: InputEvent| {
+            let textarea: HtmlTextAreaElement = event.target_unchecked_into();
+            code.set(textarea.value());
+        })
+    };
+    let run_action = {
+        let code = code.clone();
+        let output = output.clone();
+        let status = status.clone();
+        let language = props.language;
+        Callback::from(move |()| {
+            let current_code = (*code).clone();
+            output.set(t(language, "playground_running").to_owned());
+            status.set(PlaygroundStatus::Running);
+            run_playground_code(current_code, output.clone(), status.clone(), language);
+        })
+    };
+    let run_code = {
+        let run_action = run_action.clone();
+        Callback::from(move |_| run_action.emit(()))
+    };
+    let on_keydown = {
+        let code = code.clone();
+        let run_action = run_action.clone();
+        Callback::from(move |event: KeyboardEvent| {
+            if event.key() == "Tab" {
+                event.prevent_default();
+                let textarea: HtmlTextAreaElement = event.target_unchecked_into();
+                insert_text_at_cursor(&textarea, "    ");
+                code.set(textarea.value());
+            } else if event.key() == "Enter" && (event.ctrl_key() || event.meta_key()) {
+                event.prevent_default();
+                run_action.emit(());
+            }
+        })
+    };
+
+    html! {
+        <>
+            <button
+                class="playground-fab"
+                type="button"
+                aria-expanded={props.is_open.to_string()}
+                onclick={props.on_toggle.clone()}
+            >
+                { if props.is_open { t(props.language, "playground_close") } else { t(props.language, "playground_open") } }
+            </button>
+            <aside class={drawer_class} aria-label={t(props.language, "playground_title")}>
+                <div class="playground-header">
+                    <div>
+                        <p class="eyebrow">{ "RUN" }</p>
+                        <h2>{ t(props.language, "playground_title") }</h2>
+                        <p>{ t(props.language, "playground_copy") }</p>
+                    </div>
+                    <button class="tiny-button" type="button" onclick={props.on_close.clone()}>{ "×" }</button>
+                </div>
+                <div class="playground-editor-shell">
+                    <div class="playground-tabs">
+                        <span class="playground-dot red"></span>
+                        <span class="playground-dot amber"></span>
+                        <span class="playground-dot green"></span>
+                        <span>{ "main.rs" }</span>
+                    </div>
+                    <textarea
+                        class="playground-editor"
+                        spellcheck="false"
+                        value={(*code).clone()}
+                        oninput={on_input}
+                        onkeydown={on_keydown}
+                    />
+                </div>
+                <div class="playground-actions">
+                    <button
+                        class="primary-button"
+                        type="button"
+                        disabled={*status == PlaygroundStatus::Running}
+                        onclick={run_code}
+                    >
+                        { if *status == PlaygroundStatus::Running { t(props.language, "playground_running") } else { t(props.language, "playground_run") } }
+                    </button>
+                    <span class={status_class}>{ status_label }</span>
+                </div>
+                <div class="playground-output">
+                    <p class="guide-title">{ t(props.language, "playground_output") }</p>
+                    <pre><code>{ (*output).clone() }</code></pre>
+                </div>
+            </aside>
+        </>
+    }
+}
+
+fn default_playground_code() -> String {
+    "fn main() {\n    let mut count = 41;\n    count += 1;\n    println!(\"count = {count}\");\n}\n"
+        .to_owned()
+}
+
+fn insert_text_at_cursor(textarea: &HtmlTextAreaElement, insert: &str) {
+    let value = textarea.value();
+    let start = textarea
+        .selection_start()
+        .ok()
+        .flatten()
+        .unwrap_or(value.len() as u32) as usize;
+    let end = textarea
+        .selection_end()
+        .ok()
+        .flatten()
+        .unwrap_or(start as u32) as usize;
+    let mut next = String::with_capacity(value.len() + insert.len());
+    next.push_str(&value[..start]);
+    next.push_str(insert);
+    next.push_str(&value[end..]);
+    textarea.set_value(&next);
+    let cursor = (start + insert.len()) as u32;
+    let _ = textarea.set_selection_range(cursor, cursor);
+}
+
+#[cfg(target_arch = "wasm32")]
+fn run_playground_code(
+    code: String,
+    output: UseStateHandle<String>,
+    status: UseStateHandle<PlaygroundStatus>,
+    language: Language,
+) {
+    use gloo_net::http::Request;
+    use serde::{Deserialize, Serialize};
+    use wasm_bindgen_futures::spawn_local;
+
+    #[derive(Serialize)]
+    struct ExecuteRequest {
+        channel: &'static str,
+        mode: &'static str,
+        edition: &'static str,
+        #[serde(rename = "crateType")]
+        crate_type: &'static str,
+        tests: bool,
+        code: String,
+        backtrace: bool,
+    }
+
+    #[derive(Deserialize)]
+    struct ExecuteResponse {
+        success: bool,
+        stdout: String,
+        stderr: String,
+    }
+
+    spawn_local(async move {
+        let request = ExecuteRequest {
+            channel: "stable",
+            mode: "debug",
+            edition: "2021",
+            crate_type: "bin",
+            tests: false,
+            code,
+            backtrace: false,
+        };
+        let result = async {
+            let response = Request::post("https://play.rust-lang.org/execute")
+                .json(&request)
+                .map_err(|err| err.to_string())?
+                .send()
+                .await
+                .map_err(|err| err.to_string())?;
+            response
+                .json::<ExecuteResponse>()
+                .await
+                .map_err(|err| err.to_string())
+        }
+        .await;
+
+        match result {
+            Ok(response) => {
+                let mut combined = String::new();
+                if !response.stdout.trim().is_empty() {
+                    combined.push_str(&response.stdout);
+                }
+                if !response.stderr.trim().is_empty() {
+                    if !combined.is_empty() {
+                        combined.push('\n');
+                    }
+                    combined.push_str(&response.stderr);
+                }
+                if combined.trim().is_empty() {
+                    combined.push_str(if response.success {
+                        "程序执行完成，无输出。"
+                    } else {
+                        "执行失败，但没有返回输出。"
+                    });
+                }
+                status.set(if response.success {
+                    PlaygroundStatus::Success
+                } else {
+                    PlaygroundStatus::Failed
+                });
+                output.set(combined);
+            }
+            Err(err) => {
+                status.set(PlaygroundStatus::Failed);
+                output.set(format!("{}\n{err}", t(language, "playground_error")));
+            }
+        }
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_playground_code(
+    _: String,
+    output: UseStateHandle<String>,
+    status: UseStateHandle<PlaygroundStatus>,
+    language: Language,
+) {
+    status.set(PlaygroundStatus::Failed);
+    output.set(t(language, "playground_error").to_owned());
 }
 
 fn active_lesson_id_for_route(route: &Route) -> Option<&'static str> {

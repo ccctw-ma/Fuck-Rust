@@ -109,6 +109,7 @@ pub fn learn_page(props: &ProgressPageProps) -> Html {
                                 <span class="pill strong">{ stage_label(lesson.stage, language) }</span>
                                 <span class="pill">{ format!("{} {}", t(language, "difficulty"), lesson.difficulty) }</span>
                                 <span class="pill">{ format!("{} {}", lesson.minutes, t(language, "minute_suffix")) }</span>
+                                <a class="pill source-pill" href={lesson.demo.source_url} target="_blank" rel="noreferrer">{ t(language, "source_ref") }</a>
                                 <a class="pill" href={lesson.book_url} target="_blank" rel="noreferrer">{ t(language, "book_ref") }</a>
                             </div>
                             <h2 class="lesson-title">{ lesson_title(lesson, language) }</h2>
@@ -567,6 +568,8 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
         <>
             <DemoBlock
                 title={demo_title(lesson, language)}
+                source_url={lesson.demo.source_url}
+                source_label={t(language, "source_ref")}
                 code={lesson.demo.code}
                 output={lesson.demo.output}
                 takeaway={demo_takeaway(lesson, language)}

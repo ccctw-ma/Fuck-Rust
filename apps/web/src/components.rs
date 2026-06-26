@@ -11,6 +11,7 @@ pub struct HeaderProps {
     pub theme: Theme,
     pub on_language_toggle: Callback<MouseEvent>,
     pub on_theme_toggle: Callback<MouseEvent>,
+    pub on_playground_toggle: Callback<MouseEvent>,
 }
 
 #[function_component(Header)]
@@ -38,6 +39,9 @@ pub fn header(props: &HeaderProps) -> Html {
                 <NavLink route={Route::Stats} label={t(props.language, "stats")} />
             </nav>
             <div class="toolbar">
+                <button class="tiny-button playground-top-button" type="button" onclick={props.on_playground_toggle.clone()}>
+                    { t(props.language, "playground") }
+                </button>
                 <button class="tiny-button" type="button" onclick={props.on_language_toggle.clone()}>
                     { props.language.toggle_label() }
                 </button>
@@ -204,6 +208,8 @@ pub fn stage_card(props: &StageCardProps) -> Html {
 #[derive(Properties, PartialEq)]
 pub struct DemoBlockProps {
     pub title: &'static str,
+    pub source_url: &'static str,
+    pub source_label: &'static str,
     pub code: &'static str,
     pub output: &'static str,
     pub takeaway: &'static str,
@@ -222,9 +228,14 @@ pub fn demo_block(props: &DemoBlockProps) -> Html {
         <aside class="demo-panel">
             <div class="demo-heading">
                 <p class="demo-title">{ props.title }</p>
-                <a class="pill strong" href={props.book_url} target="_blank" rel="noreferrer">
-                    { props.book_label }
-                </a>
+                <div class="demo-link-row">
+                    <a class="pill source-pill" href={props.source_url} target="_blank" rel="noreferrer">
+                        { props.source_label }
+                    </a>
+                    <a class="pill strong" href={props.book_url} target="_blank" rel="noreferrer">
+                        { props.book_label }
+                    </a>
+                </div>
             </div>
             <div class="guide-list">
                 <p class="guide-title">{ props.guide_title }</p>
