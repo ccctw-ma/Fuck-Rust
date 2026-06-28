@@ -48,7 +48,7 @@ jobs:
 
       - name: Build WASM app
         working-directory: apps/web
-        run: trunk build --release
+        run: env -u NO_COLOR trunk build --release
 
       - name: Install Node dependencies
         run: npm ci
