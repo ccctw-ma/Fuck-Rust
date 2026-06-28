@@ -264,20 +264,19 @@ fn push_drill_group(
             spec.concept
         ));
         let code = leak(spec.code.to_owned());
+        let compiler_misconception = leak(format!(
+            "只要代码出现在 ripgrep 的「{source_anchor}」里，{} 就不受编译期规则约束",
+            spec.concept
+        ));
         let options = Box::leak(
-            vec![
-                spec.correct,
-                spec.misconception,
-                "这部分完全由运行时决定，编译器无法提供帮助",
-            ]
-            .into_boxed_slice(),
+            vec![spec.correct, spec.misconception, compiler_misconception].into_boxed_slice(),
         );
         let explanation = leak(format!(
-            "{}。对应 ripgrep 的「{source_anchor}」场景，这是本知识点的{}题，用来把概念从识别推进到可应用。",
-            spec.explanation, difficulty_name
+            "{}。放回 ripgrep 的「{source_anchor}」场景看，关键不是背概念名，而是解释这段代码为什么需要“{}”。这是{}题，目标是把源码里的证据和规则对齐。",
+            spec.explanation, spec.concept, difficulty_name
         ));
         let hint = leak(format!(
-            "先把这段代码放回 ripgrep 的「{source_anchor}」职责里，再判断所有权、类型或模式关系。关键词：{}。",
+            "看题干代码中哪一个 token 或调用真正触发了“{}”：类型标注、方法调用、模式、借用符号或返回值。再和 ripgrep 的「{source_anchor}」职责对齐。",
             spec.concept
         ));
 

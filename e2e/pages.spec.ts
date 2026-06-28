@@ -47,13 +47,14 @@ test.describe('Rust via ripgrep pages', () => {
   test('lesson exercise includes ripgrep source reading module before answering', async ({ page }) => {
     await page.goto('/exercise/syntax-let-mut');
 
+    const demo = page.locator('.demo-panel');
     await expect(page.getByText('源码阅读模块')).toBeVisible();
     await expect(page.getByText('当前源码锚点')).toBeVisible();
-    await expect(page.getByText(/crates\/core\/main\.rs L43-L66/)).toBeVisible();
+    await expect(demo.locator('.source-reading-card').getByText(/crates\/core\/main\.rs L43-L66/)).toBeVisible();
     await expect(page.getByText('源码职责')).toBeVisible();
     await expect(page.getByText(/ripgrep 的程序入口/)).toBeVisible();
     await expect(page.getByText('对应规则')).toBeVisible();
-    await expect(page.getByText(/match 是表达式/)).toBeVisible();
+    await expect(demo.locator('.source-reading-card').getByText(/match 是表达式/)).toBeVisible();
     await expect(page.getByText('这题对应')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Rust Book' })).toBeVisible();
     await expect(page.getByRole('link', { name: /查看 ripgrep 源码/ })).toHaveAttribute('href', /github\.com\/BurntSushi\/ripgrep/);
@@ -94,7 +95,7 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(demo.getByText(/保存解压命令配置/)).toBeVisible();
     await expect(demo.getByText(/Message::Quit/).first()).toBeVisible();
     await expect(demo.getByText(/答题提示/)).toBeVisible();
-    await expect(page.getByText(/enum Message \{ Quit/)).toBeVisible();
+    await expect(page.locator('article .code-block').getByText(/enum Message \{ Quit/)).toBeVisible();
   });
 
   test('generic exercises use source and concept that match the current question', async ({ page }) => {
@@ -108,6 +109,19 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(demo.getByText(/Candidate<'a>/)).not.toBeVisible();
     await expect(demo.getByText(/题目关联：`crates\/searcher\/src\/sink\.rs` L20-L43/)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Display 约束让错误消息可格式化' })).toBeVisible();
+  });
+
+  test('feedback explanations are evidence-based instead of generic templates', async ({ page }) => {
+    await page.goto('/exercise/thread-join');
+
+    await page.getByRole('button', { name: '等待子线程执行完成' }).click();
+    await page.getByRole('button', { name: '提交答案' }).click();
+
+    await expect(page.getByText(/源码证据：先看 `crates\/core\/main\.rs` L271-L326/)).toBeVisible();
+    await expect(page.getByText(/题干代码是 `let handle = std::thread::spawn/)).toBeVisible();
+    await expect(page.locator('.solution-steps').getByText(/`join` 会阻塞当前线程/)).toBeVisible();
+    await expect(page.getByText(/先别急着选答案/)).not.toBeVisible();
+    await expect(page.getByText(/不要把这题当成脱离源码的概念题/)).toBeVisible();
   });
 
   test('brand icon is rendered as a square mark', async ({ page }) => {

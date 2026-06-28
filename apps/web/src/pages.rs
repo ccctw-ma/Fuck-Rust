@@ -388,8 +388,13 @@ fn render_exercise_support(
     language: Language,
     expected: Option<&str>,
 ) -> Html {
-    let steps = exercise_reasoning_steps(exercise, language, expected);
-    let trap = exercise_common_trap(exercise, language);
+    let lesson = lessons()
+        .iter()
+        .find(|lesson| lesson.id == exercise.lesson_id)
+        .expect("exercise references a lesson");
+    let source = exercise_source_context(exercise, lesson, language);
+    let steps = exercise_reasoning_steps(exercise, language, expected, source);
+    let trap = exercise_common_trap(exercise, language, source);
 
     html! {
         <div class="solution-guide">
@@ -409,113 +414,103 @@ fn exercise_reasoning_steps(
     exercise: &Exercise,
     language: Language,
     expected: Option<&str>,
+    source: ExerciseSourceContext,
 ) -> Vec<String> {
-    match (exercise.kind, language, expected) {
-        (ExerciseKind::SingleChoice, Language::Zh, Some(answer)) => vec![
-            format!("先把题目归类：这题考的是「{}」，也就是要判断哪一个选项符合当前 Rust 规则。", exercise_title(exercise, language)),
-            "再回到代码里找证据：重点看类型标注、分号、所有权移动、借用范围、match 分支是否完整这些会被编译器检查的位置。".to_owned(),
-            format!("最后对照参考答案「{answer}」复盘：正确选项必须能解释代码为什么成立或为什么报错，不能只凭关键词眼熟。"),
+    let expected_copy = expected
+        .map(|answer| match language {
+            Language::Zh => format!("参考答案是「{answer}」。"),
+            Language::En => format!("Expected answer: {answer}."),
+        })
+        .unwrap_or_else(|| match language {
+            Language::Zh => "提交前先用下面的证据链自查答案。".to_owned(),
+            Language::En => {
+                "Before submitting, check your answer against this evidence chain.".to_owned()
+            }
+        });
+    let code_focus = exercise_code_focus(exercise, language);
+
+    match language {
+        Language::Zh => vec![
+            format!(
+                "源码证据：先看 `{}` {}。这里的关键规则是：{}",
+                source.source_path, source.source_lines, source.book_rule
+            ),
+            format!(
+                "题目代码证据：{}；这对应到题目「{}」里的空白、选项或输出。",
+                code_focus,
+                exercise_title(exercise, language)
+            ),
+            format!(
+                "{}再用题目解释复核：{}",
+                expected_copy,
+                exercise_explanation(exercise, language)
+            ),
         ],
-        (ExerciseKind::SingleChoice, Language::Zh, None) => vec![
-            format!("先别急着选答案，先判断这题属于哪个知识点：{}。", exercise_title(exercise, language)),
-            "逐行读代码，只标出会影响编译或结果的地方：类型、分号、是否 move、是否借用、分支返回类型是否一致。".to_owned(),
-            "逐个排除选项：只要选项和代码证据冲突，就先排除；剩下的选项要能完整解释题干。".to_owned(),
-        ],
-        (ExerciseKind::FillBlank, Language::Zh, Some(answer)) => vec![
-            "先看空白处在语法结构里的位置：它是在类型位置、表达式位置、模式位置，还是方法/函数调用位置。".to_owned(),
-            format!("再把参考答案「{answer}」放回代码里读一遍，确认整句代码能从左到右连贯解释。"),
-            "最后检查大小写、括号、冒号、分号和引用符号：填空题很多错误不是概念错，而是语法角色没对上。".to_owned(),
-        ],
-        (ExerciseKind::FillBlank, Language::Zh, None) => vec![
-            "先确定空白处需要的是哪类东西：类型、变量名、模式、表达式、方法名，还是标点符号的一部分。".to_owned(),
-            "把空白前后的代码连起来读，尤其注意 `:` 后面通常是类型，`let` 左侧通常是模式，函数体最后通常是表达式。".to_owned(),
-            "写答案前先在脑中补全整行代码，如果补完后读起来不像 Rust 语法，就回到前一步重新判断空白角色。".to_owned(),
-        ],
-        (ExerciseKind::CodeOutput, Language::Zh, Some(answer)) => vec![
-            "先从入口语句开始执行，不要跳读；遇到函数调用就进入函数体，看它到底返回了什么。".to_owned(),
-            "注意 Rust 的表达式规则：没有分号的尾表达式会成为返回值，加了分号则只是语句，值会被丢弃。".to_owned(),
-            format!("最后把 `println!` 或表达式结果展开成实际文本，对照参考输出「{answer}」。"),
-        ],
-        (ExerciseKind::CodeOutput, Language::Zh, None) => vec![
-            "先找到代码真正会执行的入口，通常是最后几行的 `println!` 或变量绑定。".to_owned(),
-            "遇到函数、block、match、if 表达式时，先算出它们产出的值，再继续往下代入。".to_owned(),
-            "输出题要严格区分值和格式：数字、空格、换行、字符串内容都要按代码实际输出填写。".to_owned(),
-        ],
-        (ExerciseKind::OrderSteps, Language::Zh, Some(answer)) => vec![
-            "先找必须最先发生的动作：通常是创建值、拿到引用、构造迭代器、匹配分支或准备错误处理。".to_owned(),
-            "再按数据流排序：谁依赖谁，谁必须在谁之后使用，就把它放到后面。".to_owned(),
-            format!("最后对照参考顺序「{answer}」，检查每一步是否都能使用上一步产生的值。"),
-        ],
-        (ExerciseKind::OrderSteps, Language::Zh, None) => vec![
-            "先找起点：哪一步创建了后续步骤要用的值或上下文。".to_owned(),
-            "再找依赖：如果某一步要使用变量、引用或结果，那么它一定排在产生这些东西的步骤之后。".to_owned(),
-            "最后找收尾：打印、返回、collect、sum、unwrap_or 这类消费结果的动作通常靠后。".to_owned(),
-        ],
-        (ExerciseKind::SingleChoice, Language::En, Some(answer)) => vec![
-            format!("Classify the question first: it tests '{}', so the right option must match that Rust rule.", exercise_title(exercise, language)),
-            "Go back to the code and look for compiler-checked evidence: types, semicolons, moves, borrow ranges, and complete match arms.".to_owned(),
-            format!("Then compare with the expected answer '{answer}' and make sure it explains the code, not just a familiar keyword."),
-        ],
-        (ExerciseKind::SingleChoice, Language::En, None) => vec![
-            format!("First identify the topic: {}.", exercise_title(exercise, language)),
-            "Read the code line by line and mark only the parts that affect compilation or the result.".to_owned(),
-            "Eliminate options that contradict the code evidence; the remaining one should explain the prompt fully.".to_owned(),
-        ],
-        (ExerciseKind::FillBlank, Language::En, Some(answer)) => vec![
-            "Identify what syntactic role the blank has: type, expression, pattern, or call target.".to_owned(),
-            format!("Put the expected answer '{answer}' back into the code and read the whole line from left to right."),
-            "Check spelling, punctuation, references, colons, and semicolons; fill blanks often fail because the role is mismatched.".to_owned(),
-        ],
-        (ExerciseKind::FillBlank, Language::En, None) => vec![
-            "First decide what kind of thing the blank needs: a type, variable, pattern, expression, method, or punctuation.".to_owned(),
-            "Read the tokens before and after the blank; `:` usually asks for a type, while the left side of `let` is a pattern.".to_owned(),
-            "Mentally complete the whole line before typing. If it does not read like Rust syntax, revisit the role.".to_owned(),
-        ],
-        (ExerciseKind::CodeOutput, Language::En, Some(answer)) => vec![
-            "Start at the actual entry statement and step into function calls instead of guessing from the function name.".to_owned(),
-            "Remember expression rules: a final expression without a semicolon returns a value; a semicolon turns it into a statement.".to_owned(),
-            format!("Expand the final `println!` or expression into concrete text and compare it with '{answer}'."),
-        ],
-        (ExerciseKind::CodeOutput, Language::En, None) => vec![
-            "Find the statement that actually produces output, usually `println!` near the end.".to_owned(),
-            "Evaluate functions, blocks, match, and if expressions before substituting their values into the output.".to_owned(),
-            "Be exact about formatting: numbers, spaces, newlines, and string contents all matter.".to_owned(),
-        ],
-        (ExerciseKind::OrderSteps, Language::En, Some(answer)) => vec![
-            "Find the action that must happen first: creating a value, borrowing it, building an iterator, or preparing error handling.".to_owned(),
-            "Sort by data dependency: if a step uses something, it must come after the step that creates it.".to_owned(),
-            format!("Compare with the expected order '{answer}' and verify that every step can use the previous result."),
-        ],
-        (ExerciseKind::OrderSteps, Language::En, None) => vec![
-            "Find the starting step that creates the value or context used later.".to_owned(),
-            "Then track dependencies: any step using a variable, reference, or result must come after it is produced.".to_owned(),
-            "Finish with consuming actions such as printing, returning, collect, sum, or unwrap_or.".to_owned(),
+        Language::En => vec![
+            format!(
+                "Source evidence: inspect `{}` {}. The relevant rule is: {}",
+                source.source_path, source.source_lines, source.book_rule
+            ),
+            format!(
+                "Prompt evidence: {}; this maps directly to the blank, option, or output in '{}'.",
+                code_focus,
+                exercise_title(exercise, language)
+            ),
+            format!(
+                "{}Then verify with the exercise explanation: {}",
+                expected_copy,
+                exercise_explanation(exercise, language)
+            ),
         ],
     }
 }
 
-fn exercise_common_trap(exercise: &Exercise, language: Language) -> String {
-    let difficulty_note = match (exercise.level(), language) {
-        (1, Language::Zh) => "基础题先看语法位置，不要把其他章节的复杂规则带进来。",
-        (2, Language::Zh) => "进阶题通常会同时考两个小规则，必须把代码证据逐条对上。",
-        (_, Language::Zh) => "挑战题常把正确写法和相似但错误的写法放在一起，尤其要检查所有权、生命周期或返回类型。",
-        (1, Language::En) => "For basic questions, focus on syntax position before importing rules from later chapters.",
-        (2, Language::En) => "Practice questions often combine two small rules, so match each claim to code evidence.",
-        (_, Language::En) => "Challenge questions often place a correct pattern next to a similar wrong one; inspect ownership, lifetimes, or return types carefully.",
-    };
+fn exercise_common_trap(
+    exercise: &Exercise,
+    language: Language,
+    source: ExerciseSourceContext,
+) -> String {
+    match language {
+        Language::Zh => format!(
+            "不要把这题当成脱离源码的概念题。必须同时满足三件事：题目代码 `{}` 读得通、参考答案能解释 `{} {}` 的源码规则、解释能对应到“{}”。提示只作为辅助，最终以源码和题干证据为准。",
+            compact_code(exercise.code),
+            source.source_path,
+            source.source_lines,
+            exercise_explanation(exercise, language)
+        ),
+        Language::En => format!(
+            "Do not treat this as a detached concept quiz. The answer must make the prompt code `{}` read correctly, explain the rule in `{}` {}, and match this explanation: {}",
+            compact_code(exercise.code),
+            source.source_path,
+            source.source_lines,
+            exercise_explanation(exercise, language)
+        ),
+    }
+}
 
-    let kind_note = match (exercise.kind, language) {
-        (ExerciseKind::SingleChoice, Language::Zh) => "不要只看选项里的熟悉词；正确选项必须能解释这段代码的具体行为。",
-        (ExerciseKind::FillBlank, Language::Zh) => "不要只填“意思对”的词；Rust 还要求它在当前位置是合法语法。",
-        (ExerciseKind::CodeOutput, Language::Zh) => "不要凭直觉写结果；要按执行顺序算到最后，尤其注意分号和格式化输出。",
-        (ExerciseKind::OrderSteps, Language::Zh) => "不要按文字顺眼排序；要按变量和引用的依赖关系排序。",
-        (ExerciseKind::SingleChoice, Language::En) => "Do not pick by familiar wording; the right option must explain this exact code.",
-        (ExerciseKind::FillBlank, Language::En) => "Do not type a word that only 'means' the right thing; it must be valid Rust at that position.",
-        (ExerciseKind::CodeOutput, Language::En) => "Do not guess the result; evaluate in execution order and watch semicolons and formatting.",
-        (ExerciseKind::OrderSteps, Language::En) => "Do not sort by how the text reads; sort by variable and reference dependencies.",
-    };
+fn exercise_code_focus(exercise: &Exercise, language: Language) -> String {
+    let compact = compact_code(exercise.code);
+    if compact.is_empty() {
+        return match language {
+            Language::Zh => format!(
+                "这题没有代码块，证据主要在排序/选项文字中：{}",
+                exercise.prompt
+            ),
+            Language::En => format!(
+                "This exercise has no code block; the evidence is in the ordering/options: {}",
+                exercise.prompt
+            ),
+        };
+    }
 
-    format!("{difficulty_note}{kind_note}")
+    match language {
+        Language::Zh => format!("题干代码是 `{compact}`"),
+        Language::En => format!("the prompt code is `{compact}`"),
+    }
+}
+
+fn compact_code(code: &str) -> String {
+    code.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn exercise_lesson_position(exercise: &Exercise) -> Option<(&'static str, usize, usize)> {
