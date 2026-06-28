@@ -563,20 +563,21 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
         .iter()
         .find(|lesson| lesson.id == exercise.lesson_id)
         .expect("exercise references a lesson");
+    let source = exercise_source_context(exercise, lesson, language);
 
     html! {
         <>
             <DemoBlock
-                title={demo_title(lesson, language)}
-                source_path={lesson.demo.source_path}
-                source_lines={lesson.demo.source_lines}
-                source_role={demo_source_role(lesson, language)}
-                book_rule={demo_book_rule(lesson, language)}
-                source_url={lesson.demo.source_url}
+                title={source.title}
+                source_path={source.source_path}
+                source_lines={source.source_lines}
+                source_role={source.source_role}
+                book_rule={source.book_rule}
+                source_url={source.source_url}
                 source_label={t(language, "source_ref")}
-                code={lesson.demo.code}
-                output={lesson.demo.output}
-                takeaway={demo_takeaway(lesson, language)}
+                code={source.code}
+                output={source.output}
+                takeaway={source.takeaway}
                 output_label={t(language, "demo_output")}
                 book_url={lesson.book_url}
                 book_label={t(language, "book_ref")}
@@ -585,47 +586,145 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
                 source_anchor_label={t(language, "source_anchor")}
                 source_role_label={t(language, "source_role")}
                 source_rule_label={t(language, "source_rule")}
-                guide={enriched_lesson_guide(exercise, lesson, language)}
-                goals={enriched_lesson_goals(exercise, lesson, language)}
+                guide={enriched_lesson_guide(exercise, lesson, language, source)}
+                goals={enriched_lesson_goals(exercise, language, source)}
             />
         </>
     }
 }
 
-fn enriched_lesson_guide(exercise: &Exercise, lesson: &Lesson, language: Language) -> Vec<String> {
+#[derive(Clone, Copy)]
+struct ExerciseSourceContext {
+    title: &'static str,
+    source_path: &'static str,
+    source_lines: &'static str,
+    source_role: &'static str,
+    book_rule: &'static str,
+    source_url: &'static str,
+    code: &'static str,
+    output: &'static str,
+    takeaway: &'static str,
+}
+
+fn enriched_lesson_guide(
+    exercise: &Exercise,
+    lesson: &Lesson,
+    language: Language,
+    source: ExerciseSourceContext,
+) -> Vec<String> {
     vec![
-        source_reading_focus(lesson, language),
-        exercise_book_link(exercise, lesson, language),
+        exercise_knowledge_point(exercise, language),
+        source_reading_focus(source, language),
+        exercise_book_link(exercise, lesson, source, language),
         exercise_answer_hint(exercise, language).to_owned(),
     ]
 }
 
-fn enriched_lesson_goals(exercise: &Exercise, lesson: &Lesson, language: Language) -> Vec<String> {
-    let mut goals = lesson
-        .goals
-        .iter()
-        .enumerate()
-        .map(|(index, _)| lesson_goal(lesson, index, language).to_owned())
-        .collect::<Vec<_>>();
-    goals.push(exercise_source_mapping(exercise, lesson, language));
-    goals.push(format!(
-        "{}：{}",
-        t(language, "answer_hint"),
-        exercise_hint(exercise, language)
-    ));
-    goals
+fn enriched_lesson_goals(
+    exercise: &Exercise,
+    language: Language,
+    source: ExerciseSourceContext,
+) -> Vec<String> {
+    vec![
+        exercise_source_mapping(exercise, source, language),
+        exercise_source_evidence(source, language),
+        format!(
+            "{}：{}",
+            t(language, "answer_hint"),
+            exercise_hint(exercise, language)
+        ),
+    ]
 }
 
-fn source_reading_focus(lesson: &Lesson, language: Language) -> String {
+fn source_reading_focus(source: ExerciseSourceContext, language: Language) -> String {
     match language {
         Language::Zh => format!(
-            "先把源码定位到 `{}` {}，理解它在 ripgrep 里的职责，再回到题目判断具体 Rust 规则。",
-            lesson.demo.source_path, lesson.demo.source_lines
+            "先把源码定位到 `{}` {}，理解它如何使用本题知识点，再回到题目判断空白或选项。",
+            source.source_path, source.source_lines
         ),
         Language::En => format!(
-            "Start at `{}` {}, understand its role in ripgrep, then answer by applying the mapped Rust rule.",
-            lesson.demo.source_path, lesson.demo.source_lines
+            "Start at `{}` {}, see how this source uses the concept, then answer the blank or option.",
+            source.source_path, source.source_lines
         ),
+    }
+}
+
+fn exercise_source_context(
+    exercise: &Exercise,
+    lesson: &Lesson,
+    language: Language,
+) -> ExerciseSourceContext {
+    match (exercise.id, language) {
+        (
+            "trait-bound-display" | "impl-trait-param" | "where-clause",
+            Language::Zh,
+        ) => ExerciseSourceContext {
+            title: "ripgrep: SinkError 的 Display 约束",
+            source_path: "crates/searcher/src/sink.rs",
+            source_lines: "L20-L43",
+            source_role: "把搜索过程里的错误消息统一转换成具体错误类型，要求消息能被用户友好地格式化。",
+            book_rule: "泛型参数如果要调用 `to_string()` 或用 `{}` 输出，就必须声明 `Display` 能力约束。",
+            source_url:
+                "https://github.com/BurntSushi/ripgrep/blob/master/crates/searcher/src/sink.rs#L20-L43",
+            code: "pub trait SinkError: Sized {\n    fn error_message<T: std::fmt::Display>(message: T) -> Self;\n}\n\nimpl SinkError for io::Error {\n    fn error_message<T: std::fmt::Display>(message: T) -> io::Error {\n        io::Error::new(io::ErrorKind::Other, message.to_string())\n    }\n}",
+            output: "Display message becomes a concrete error",
+            takeaway: "这里的 T 不是任意类型；ripgrep 需要把 message 转成字符串，所以 T 必须实现 `std::fmt::Display`。",
+        },
+        (
+            "trait-bound-display" | "impl-trait-param" | "where-clause",
+            Language::En,
+        ) => ExerciseSourceContext {
+            title: "ripgrep: SinkError Display bound",
+            source_path: "crates/searcher/src/sink.rs",
+            source_lines: "L20-L43",
+            source_role:
+                "Converts search-time error messages into concrete error types, requiring user-facing formatting.",
+            book_rule:
+                "A generic parameter needs a `Display` bound when code calls `to_string()` or formats it with `{}`.",
+            source_url:
+                "https://github.com/BurntSushi/ripgrep/blob/master/crates/searcher/src/sink.rs#L20-L43",
+            code: "pub trait SinkError: Sized {\n    fn error_message<T: std::fmt::Display>(message: T) -> Self;\n}\n\nimpl SinkError for io::Error {\n    fn error_message<T: std::fmt::Display>(message: T) -> io::Error {\n        io::Error::new(io::ErrorKind::Other, message.to_string())\n    }\n}",
+            output: "Display message becomes a concrete error",
+            takeaway:
+                "T is not arbitrary here. ripgrep turns message into text, so T must implement `std::fmt::Display`.",
+        },
+        ("derive-debug-bound", Language::Zh) => ExerciseSourceContext {
+            title: "ripgrep: Candidate 的 Debug 实现",
+            source_path: "crates/globset/src/lib.rs",
+            source_lines: "L605-L613",
+            source_role: "为 Candidate 提供调试输出，方便开发者查看 path、basename 和扩展名字段。",
+            book_rule: "`{:?}` 使用 Debug；如果泛型代码要调试打印 T，就需要 `Debug` 约束。",
+            source_url:
+                "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L605-L613",
+            code: "impl<'a> std::fmt::Debug for Candidate<'a> {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        f.debug_struct(\"Candidate\")\n            .field(\"path\", &self.path.as_bstr())\n            .finish()\n    }\n}",
+            output: "Candidate can be debug-formatted",
+            takeaway: "Display 面向用户输出，Debug 面向开发调试；题目里的 `{:?}` 要找的是 Debug。",
+        },
+        ("derive-debug-bound", Language::En) => ExerciseSourceContext {
+            title: "ripgrep: Candidate Debug impl",
+            source_path: "crates/globset/src/lib.rs",
+            source_lines: "L605-L613",
+            source_role: "Provides developer-facing debug output for Candidate fields.",
+            book_rule:
+                "`{:?}` uses Debug; generic code that debug-prints T needs a `Debug` bound.",
+            source_url:
+                "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L605-L613",
+            code: "impl<'a> std::fmt::Debug for Candidate<'a> {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        f.debug_struct(\"Candidate\")\n            .field(\"path\", &self.path.as_bstr())\n            .finish()\n    }\n}",
+            output: "Candidate can be debug-formatted",
+            takeaway:
+                "Display is for user output; Debug is for developer diagnostics. `{:?}` points to Debug.",
+        },
+        _ => ExerciseSourceContext {
+            title: demo_title(lesson, language),
+            source_path: lesson.demo.source_path,
+            source_lines: lesson.demo.source_lines,
+            source_role: demo_source_role(lesson, language),
+            book_rule: demo_book_rule(lesson, language),
+            source_url: lesson.demo.source_url,
+            code: lesson.demo.code,
+            output: lesson.demo.output,
+            takeaway: demo_takeaway(lesson, language),
+        },
     }
 }
 
@@ -719,29 +818,96 @@ fn demo_book_rule(lesson: &Lesson, language: Language) -> &'static str {
     }
 }
 
-fn exercise_source_mapping(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {
+fn exercise_source_mapping(
+    exercise: &Exercise,
+    source: ExerciseSourceContext,
+    language: Language,
+) -> String {
     match language {
         Language::Zh => format!(
             "{}：这道题把「{}」落到 `{}` 的源码片段里，不是孤立背概念。",
             t(language, "exercise_link"),
             exercise_title(exercise, language),
-            lesson.demo.source_path
+            source.source_path
         ),
         Language::En => format!(
             "{}: '{}' is mapped back to `{}` instead of being a detached concept drill.",
             t(language, "exercise_link"),
             exercise_title(exercise, language),
-            lesson.demo.source_path
+            source.source_path
         ),
     }
 }
 
-fn exercise_book_link(exercise: &Exercise, lesson: &Lesson, language: Language) -> String {
+fn exercise_source_evidence(source: ExerciseSourceContext, language: Language) -> String {
+    match language {
+        Language::Zh => format!(
+            "{}：`{}` {} 里的关键代码就是本题判断依据，不再混用整课背景。",
+            t(language, "source_question"),
+            source.source_path,
+            source.source_lines
+        ),
+        Language::En => format!(
+            "{}: `{}` {} is the evidence for this question, not a generic lesson-level backdrop.",
+            t(language, "source_question"),
+            source.source_path,
+            source.source_lines
+        ),
+    }
+}
+
+fn exercise_knowledge_point(exercise: &Exercise, language: Language) -> String {
+    match (exercise.id, language) {
+        ("impl-trait-param", Language::Zh) => {
+            "知识点：`impl Trait` 是函数参数里的简写，意思是“这个参数可以是任意实现某个 trait 的具体类型”。本题问的不是 Candidate 生命周期，而是 `Display` 这种格式化能力。".to_owned()
+        }
+        ("impl-trait-param", Language::En) => {
+            "Concept: `impl Trait` in parameter position means this argument can be any concrete type implementing that trait. This exercise is about the Display formatting capability, not Candidate lifetimes.".to_owned()
+        }
+        ("trait-bound-display" | "where-clause", Language::Zh) => {
+            "知识点：泛型参数不是“什么都能做”。函数体里用了 `{}`、`to_string()` 或用户可读格式化，就要声明 `Display` trait bound。".to_owned()
+        }
+        ("trait-bound-display" | "where-clause", Language::En) => {
+            "Concept: generic parameters are not magic. If the body uses `{}`, `to_string()`, or user-facing formatting, it needs a `Display` bound.".to_owned()
+        }
+        ("derive-debug-bound", Language::Zh) => {
+            "知识点：`Display` 面向用户可读输出，`Debug` 面向开发调试输出。看到 `{:?}` 时，优先想到 `Debug`。".to_owned()
+        }
+        ("derive-debug-bound", Language::En) => {
+            "Concept: `Display` is for user-facing output, while `Debug` is for developer diagnostics. `{:?}` points to `Debug`.".to_owned()
+        }
+        ("generic-largest", Language::Zh) => {
+            "知识点：泛型约束要来自函数体实际使用的能力。这里源码调用 `path.as_ref()`，所以核心约束是 `AsRef<Path>`。".to_owned()
+        }
+        ("generic-largest", Language::En) => {
+            "Concept: a generic bound should come from the capability used in the body. Here the source calls `path.as_ref()`, so the key bound is `AsRef<Path>`.".to_owned()
+        }
+        (_, Language::Zh) => format!(
+            "知识点：{}。先看题目代码真正用了什么语法或能力，再回源码确认同一规则如何出现在 ripgrep 中。",
+            exercise_title(exercise, language)
+        ),
+        (_, Language::En) => format!(
+            "Concept: {}. First identify the syntax or capability used in the prompt, then connect it to the matching ripgrep source.",
+            exercise_title(exercise, language)
+        ),
+    }
+}
+
+fn exercise_book_link(
+    exercise: &Exercise,
+    lesson: &Lesson,
+    source: ExerciseSourceContext,
+    language: Language,
+) -> String {
     match (exercise.id, language) {
         ("syntax-let-mut", Language::Zh) => "本题空白在 `let ____ count` 的绑定位置。Rust Book 说绑定默认不可变，所以后面的 `count += 1` 要合法，绑定处必须声明可变。".to_owned(),
         ("syntax-let-mut", Language::En) => "The blank sits in `let ____ count`. The Book says bindings are immutable by default, so `count += 1` only works if the binding is marked mutable.".to_owned(),
         ("enum-if-let-method", Language::Zh) => "题干给出 `msg` 的类型是 `Message`，`Quit` 是这个 enum 的变体。匹配时要写完整路径 `Message::Quit`，不是单独写 `Quit`。".to_owned(),
         ("enum-if-let-method", Language::En) => "The prompt says `msg` has type `Message`, and `Quit` is a variant of that enum. Match it with the full path `Message::Quit`, not bare `Quit`.".to_owned(),
+        ("impl-trait-param", Language::Zh) => "本题空白在 `impl ____` 的 trait 位置。对照 ripgrep 的 `error_message<T: std::fmt::Display>`：参数要能转成用户可读字符串，所以答案是 `Display`。".to_owned(),
+        ("impl-trait-param", Language::En) => "The blank is the trait in `impl ____`. Compare ripgrep's `error_message<T: std::fmt::Display>`: the value must become user-facing text, so the answer is `Display`.".to_owned(),
+        ("trait-bound-display" | "where-clause", Language::Zh) => "本题要看函数体：只要代码使用 `{}` 或 `to_string()` 输出泛型值，T 就必须提供 `Display` 能力。".to_owned(),
+        ("trait-bound-display" | "where-clause", Language::En) => "Look at the body: if generic T is printed with `{}` or converted with `to_string()`, T must provide `Display`.".to_owned(),
         _ => match (lesson.id, exercise.kind, language) {
             ("syntax-basics", _, Language::Zh) => "对应到本题，先判断空白或输出来自绑定、表达式、语句还是模式位置；Rust 的位置规则比“词看起来像什么”更重要。".to_owned(),
             ("control-flow", _, Language::Zh) => "对应到本题，盯住 `if`、`match` 或 `if let` 的条件和分支：Rust Book 要求分支覆盖明确，并且作为表达式时产出同一种类型。".to_owned(),
@@ -768,8 +934,14 @@ fn exercise_book_link(exercise: &Exercise, lesson: &Lesson, language: Language) 
             ("generics-traits", _, Language::En) => "For this exercise, find the capability used inside the function body. A generic parameter can only use it when the matching trait bound is declared.".to_owned(),
             ("concurrency", _, Language::En) => "For this exercise, check whether the value crosses a thread or channel boundary. Thread closures often use `move` to own data safely.".to_owned(),
             _ => match language {
-                Language::Zh => "对应到本题，只保留能被题干代码直接证明的规则；如果一句话解释不出“因为哪里，所以答案是什么”，先回题干找证据。".to_owned(),
-                Language::En => "For this exercise, keep only rules proven by the prompt code. If you cannot say 'because this code shows X, the answer is Y', inspect the prompt again.".to_owned(),
+                Language::Zh => format!(
+                    "对应到本题，只保留能被题干和 `{}` 直接证明的规则；如果一句话解释不出“因为哪里，所以答案是什么”，先回题干找证据。",
+                    source.source_path
+                ),
+                Language::En => format!(
+                    "For this exercise, keep only rules proven by the prompt and `{}`. If you cannot say 'because this code shows X, the answer is Y', inspect the prompt again.",
+                    source.source_path
+                ),
             },
         },
     }

@@ -1164,8 +1164,9 @@ button {
   right: 0;
   z-index: 38;
   display: grid;
-  grid-template-rows: auto auto minmax(320px, 1fr) auto minmax(150px, 0.58fr);
-  gap: 14px;
+  grid-template-rows: auto minmax(360px, 0.62fr) auto minmax(132px, 0.38fr);
+  align-content: start;
+  gap: 12px;
   width: min(var(--playground-width, 640px), calc(100vw - 28px));
   min-width: 420px;
   max-width: calc(100vw - 28px);
@@ -1243,21 +1244,7 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.65;
-}
-
-.playground-resize-hint {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--panel-strong) 44%, transparent);
-  font-size: 12px;
-  font-weight: 850;
+  line-height: 1.5;
 }
 
 .playground-editor-shell,
@@ -1309,7 +1296,7 @@ button {
 .playground-monaco-host {
   position: relative;
   height: calc(100% - 34px);
-  min-height: 320px;
+  min-height: 340px;
   overflow: hidden;
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--amber) 7%, transparent) 1px, transparent 1px) 0 0 / 40px 40px,
@@ -1349,6 +1336,7 @@ button {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+  padding-top: 2px;
 }
 
 .playground-status {
@@ -1383,6 +1371,7 @@ button {
   grid-template-rows: auto 1fr;
   gap: 10px;
   padding: 14px;
+  min-height: 132px;
 }
 
 .playground-output pre {
@@ -1602,6 +1591,7 @@ button {
   }
 
   .playground-drawer {
+    grid-template-rows: auto minmax(300px, 0.64fr) auto minmax(120px, 0.36fr);
     width: 100vw;
     padding: 14px;
     border-left: 0;

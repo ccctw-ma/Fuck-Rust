@@ -74,6 +74,14 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(drawer.locator('.monaco-editor')).toBeVisible({ timeout: 20_000 });
     await expect(drawer.getByRole('button', { name: /运行代码|Run code/ })).toBeVisible();
     await expect(drawer.getByText(/运行输出|Output/)).toBeVisible();
+    const editorBox = await drawer.locator('.playground-editor-shell').boundingBox();
+    const actionsBox = await drawer.locator('.playground-actions').boundingBox();
+    const outputBox = await drawer.locator('.playground-output').boundingBox();
+    expect(editorBox).not.toBeNull();
+    expect(actionsBox).not.toBeNull();
+    expect(outputBox).not.toBeNull();
+    expect((actionsBox?.y ?? 999) - ((editorBox?.y ?? 0) + (editorBox?.height ?? 0))).toBeLessThanOrEqual(18);
+    expect((outputBox?.y ?? 999) - ((actionsBox?.y ?? 0) + (actionsBox?.height ?? 0))).toBeLessThanOrEqual(18);
   });
 
   test('struct lesson maps enum questions back to ripgrep source', async ({ page }) => {
@@ -87,6 +95,19 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(demo.getByText(/Message::Quit/).first()).toBeVisible();
     await expect(demo.getByText(/答题提示/)).toBeVisible();
     await expect(page.getByText(/enum Message \{ Quit/)).toBeVisible();
+  });
+
+  test('generic exercises use source and concept that match the current question', async ({ page }) => {
+    await page.goto('/exercise/impl-trait-param');
+
+    const demo = page.locator('.demo-panel');
+    await expect(demo.getByText(/ripgrep: SinkError 的 Display 约束/)).toBeVisible();
+    await expect(demo.getByText(/crates\/searcher\/src\/sink\.rs L20-L43/)).toBeVisible();
+    await expect(demo.getByText(/知识点：`impl Trait`/)).toBeVisible();
+    await expect(demo.locator('.code-block')).toContainText('error_message<T: std::fmt::Display>');
+    await expect(demo.getByText(/Candidate<'a>/)).not.toBeVisible();
+    await expect(demo.getByText(/题目关联：`crates\/searcher\/src\/sink\.rs` L20-L43/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Display 约束让错误消息可格式化' })).toBeVisible();
   });
 
   test('brand icon is rendered as a square mark', async ({ page }) => {

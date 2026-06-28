@@ -531,15 +531,15 @@ pub const LESSONS: &[Lesson] = &[
     },
     Lesson {
         id: "generics-traits",
-        title: "从 Candidate 读泛型、trait bound 与生命周期",
+        title: "从 ripgrep 泛型接口读 trait bound 与生命周期",
         stage: Stage::Production,
         minutes: 36,
         difficulty: 5,
-        summary: "用 globset 的 `Candidate<'a>` 看借用数据、Cow、AsRef<Path> 和生命周期。",
+        summary: "用 globset Candidate 和 searcher SinkError 看 AsRef、Display、Debug、生命周期与泛型约束。",
         goals: &[
-            "读懂 `Candidate<'a>` 保存借用或拥有的数据",
-            "理解 `P: AsRef<Path> + ?Sized` 的调用灵活性",
-            "解释 `'a` 如何把 candidate 与输入 path 关联",
+            "读懂 `AsRef<Path>` 如何接收 path-like 输入",
+            "理解 `Display`、`Debug` 这类 trait bound 来自函数体真实需要",
+            "解释生命周期如何把借用数据和输入参数关联",
         ],
         exercise_ids: &[
             "generic-largest",
