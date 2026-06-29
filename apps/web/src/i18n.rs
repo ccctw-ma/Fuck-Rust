@@ -488,48 +488,6 @@ pub fn lesson_goal(lesson: &Lesson, index: usize, language: Language) -> &'stati
     }
 }
 
-pub fn demo_title(lesson: &Lesson, language: Language) -> &'static str {
-    if language == Language::Zh {
-        return lesson.demo.title;
-    }
-    match lesson.id {
-        "syntax-basics" => "ripgrep: crates/core/main.rs",
-        "control-flow" => "ripgrep: Mode dispatch in run",
-        "data-functions" => "ripgrep: pattern reader",
-        "ownership" => "ripgrep: CommandReader stdout ownership",
-        "slices" => "ripgrep: bytes to pattern str",
-        "borrowing" => "ripgrep: writer borrowing",
-        "structs-enums" => "ripgrep: decompression builder",
-        "result-option" => "ripgrep: decompressor lookup",
-        "collections" => "ripgrep: config args parser",
-        "iterators-traits" => "ripgrep: search iterator pipeline",
-        "generics-traits" => "ripgrep: globset Candidate<'a>",
-        "concurrency" => "ripgrep: parallel file listing",
-        _ => lesson.demo.title,
-    }
-}
-
-pub fn demo_takeaway(lesson: &Lesson, language: Language) -> &'static str {
-    if language == Language::Zh {
-        return lesson.demo.takeaway;
-    }
-    match lesson.id {
-        "syntax-basics" => "The ripgrep entry point shows match as the returned expression of `main`, not a toy snippet.",
-        "control-flow" => "Mode dispatch uses guards and early returns to choose the actual search path.",
-        "data-functions" => "`patterns_from_reader` makes the input reader, collected Vec, and error boundary visible in one signature.",
-        "ownership" => "`Option::take` moves a real stdout pipe out before waiting for the child process.",
-        "slices" => "The pattern parser borrows bytes and returns a borrowed text view only after UTF-8 validation.",
-        "borrowing" => "The writer mutates its own output state while borrowing the incoming byte buffer read-only.",
-        "structs-enums" => "The decompression builder stores configuration and exposes behavior through impl methods.",
-        "result-option" => "A missing decompressor is `None`; process and I/O failures remain `Result` errors.",
-        "collections" => "Config parsing pushes owned OsString values and parse errors into separate Vec collections.",
-        "iterators-traits" => "ripgrep describes the walk/search pipeline with iterator adapters and consumes it when searching.",
-        "generics-traits" => "Candidate<'a> ties borrowed path data to the input lifetime while staying generic over path-like values.",
-        "concurrency" => "Parallel workers send owned haystacks to one printing thread through a channel.",
-        _ => lesson.demo.takeaway,
-    }
-}
-
 pub fn exercise_title(exercise: &Exercise, language: Language) -> &'static str {
     if language == Language::Zh {
         return exercise.title;

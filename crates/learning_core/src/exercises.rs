@@ -66,6 +66,19 @@ pub struct Exercise {
     pub hint: &'static str,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SourceContext {
+    pub title: &'static str,
+    pub source_path: &'static str,
+    pub source_lines: &'static str,
+    pub source_role: &'static str,
+    pub book_rule: &'static str,
+    pub source_url: &'static str,
+    pub code: &'static str,
+    pub output: &'static str,
+    pub takeaway: &'static str,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CheckOutcome {
     pub correct: bool,
@@ -139,6 +152,10 @@ impl Exercise {
     pub fn level(&self) -> u8 {
         self.difficulty().level()
     }
+
+    pub fn source_context(&self) -> SourceContext {
+        source_context_for_exercise(self)
+    }
 }
 
 impl Answer {
@@ -181,6 +198,29 @@ pub fn exercises_for_lesson(lesson_id: &str) -> Vec<&'static Exercise> {
 
 pub fn exercises() -> &'static [Exercise] {
     EXERCISES.get_or_init(build_exercises)
+}
+
+pub fn source_context_for_exercise(exercise: &Exercise) -> SourceContext {
+    match exercise.id {
+        "trait-bound-display" | "impl-trait-param" | "where-clause" => sink_error_display_source(),
+        "derive-debug-bound" | "struct-debug-print" => candidate_debug_source(),
+        "generic-largest" => candidate_as_ref_source(),
+        "lifetime-longest" | "static-lifetime-myth" | "lifetime-struct-ref" => {
+            candidate_lifetime_source()
+        }
+        "thread-join" => files_parallel_join_source(),
+        "channel-send" | "channel-recv-block" | "channel-multiple-send" => {
+            files_parallel_channel_source()
+        }
+        "thread-move" | "thread-spawn-return" => files_parallel_thread_source(),
+        "mutex-lock"
+        | "arc-clone"
+        | "mutex-guard-drop"
+        | "mutex-poison-unwrap"
+        | "mutex-scope-release-early"
+        | "arc-needed-not-rc" => files_parallel_state_source(),
+        _ => lesson_source_context(exercise.lesson_id),
+    }
 }
 
 fn normalize_inline(input: &str) -> String {
@@ -330,6 +370,246 @@ fn normalize_concept(input: &str) -> String {
 
 fn is_cjk(character: char) -> bool {
     ('\u{4e00}'..='\u{9fff}').contains(&character)
+}
+
+fn lesson_source_context(lesson_id: &str) -> SourceContext {
+    match lesson_id {
+        "syntax-basics" => SourceContext {
+            title: "ripgrep: crates/core/main.rs",
+            source_path: "crates/core/main.rs",
+            source_lines: "L43-L66",
+            source_role: "ripgrep 的程序入口，把解析 flags、运行搜索和错误退出码连接起来。",
+            book_rule: "match 是表达式，分支最后一行可以成为函数返回值；宏调用负责副作用输出。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L43-L66",
+            code: "fn main() -> ExitCode {\n    match run(flags::parse()) {\n        Ok(code) => code,\n        Err(err) => {\n            eprintln_locked!(\"{:#}\", err);\n            ExitCode::from(2)\n        }\n    }\n}",
+            output: "Ok(code) returns code; Err returns ExitCode 2",
+            takeaway: "这段入口代码把 match 表达式、尾表达式和宏调用放在一起：每个分支最后一行就是退出码。",
+        },
+        "control-flow" => SourceContext {
+            title: "ripgrep: run 里的模式分发",
+            source_path: "crates/core/main.rs",
+            source_lines: "L77-L100",
+            source_role: "根据 CLI mode 选择搜索、列文件、列类型或生成补全脚本的执行路径。",
+            book_rule: "match 必须覆盖所有模式；guard 可以在模式匹配后继续加条件。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L77-L100",
+            code: "let matched = match args.mode() {\n    Mode::Search(_) if !args.matches_possible() => false,\n    Mode::Search(mode) if args.threads() == 1 => search(&args, mode)?,\n    Mode::Search(mode) => search_parallel(&args, mode)?,\n    Mode::Files if args.threads() == 1 => files(&args)?,\n    Mode::Files => files_parallel(&args)?,\n    Mode::Types => return types(&args),\n    Mode::Generate(mode) => return generate(mode),\n};",
+            output: "matched controls the final ExitCode",
+            takeaway: "ripgrep 用 match 把 CLI 模式分派到执行路径；guard 负责细分条件，非 return 分支统一产出 bool。",
+        },
+        "data-functions" => SourceContext {
+            title: "ripgrep: pattern reader",
+            source_path: "crates/cli/src/pattern.rs",
+            source_lines: "L141-L158",
+            source_role: "从 reader 逐行读取 pattern，把可搜索模式收集成 Vec<String>。",
+            book_rule: "函数签名说明输入、输出和错误；无分号尾表达式返回最终 Result。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/pattern.rs#L141-L158",
+            code: "pub fn patterns_from_reader<R: io::Read>(rdr: R) -> io::Result<Vec<String>> {\n    let mut patterns = vec![];\n    io::BufReader::new(rdr).for_byte_line(|line| {\n        match pattern_from_bytes(line) {\n            Ok(pattern) => {\n                patterns.push(pattern.to_string());\n                Ok(true)\n            }\n            Err(err) => Err(io::Error::new(io::ErrorKind::Other, err)),\n        }\n    })?;\n    Ok(patterns)\n}",
+            output: "Ok(Vec<String>) or io::Error",
+            takeaway: "函数签名已经说明输入是任何 io::Read，输出是 io::Result<Vec<String>>；最后的 Ok(patterns) 是业务返回值。",
+        },
+        "ownership" => SourceContext {
+            title: "ripgrep: process stdout take",
+            source_path: "crates/cli/src/process.rs",
+            source_lines: "L218-L242",
+            source_role: "关闭外部解压进程的 stdout 管道，并等待子进程退出。",
+            book_rule: "move 会转移资源所有权；Option::take 可以从可变位置移出值并留下 None。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/process.rs#L218-L242",
+            code: "let stdout = match self.child.stdout.take() {\n    None => return Ok(()),\n    Some(stdout) => stdout,\n};\ndrop(stdout);\nlet status = self.child.wait()?;",
+            output: "stdout is moved out, then the child process is waited on",
+            takeaway: "take() 把 Option 里的 stdout 移出来并留下 None，后续不会再次拥有同一个管道。",
+        },
+        "slices" => SourceContext {
+            title: "ripgrep: bytes to pattern str",
+            source_path: "crates/cli/src/pattern.rs",
+            source_lines: "L67-L74",
+            source_role: "把命令行或配置里的原始字节校验成可搜索的 UTF-8 pattern。",
+            book_rule: "切片是不拥有数据的借用视图；返回 &str 必须和输入字节切片的生命周期绑定。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/pattern.rs#L67-L74",
+            code: "fn pattern_from_bytes(pattern: &[u8]) -> Result<&str, InvalidPatternError> {\n    match std::str::from_utf8(pattern) {\n        Ok(pattern) => Ok(pattern),\n        Err(_) => Err(InvalidPatternError(())),\n    }\n}",
+            output: "Ok(&str) when bytes are valid UTF-8",
+            takeaway: "&[u8] 和 &str 都是不拥有数据的切片；ripgrep 只是在校验后把同一段输入看成文本模式。",
+        },
+        "borrowing" => SourceContext {
+            title: "ripgrep: writer borrowing",
+            source_path: "crates/cli/src/wtr.rs",
+            source_lines: "L67-L87",
+            source_role: "把不同输出后端统一成 io::Write，让搜索结果写入 stdout/stderr。",
+            book_rule: "&mut self 表示独占修改 writer 状态；&[u8] 只是临时读取待写入 buffer。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/wtr.rs#L67-L87",
+            code: "impl io::Write for StandardStream {\n    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {\n        match self.0 {\n            termcolor::StandardStream::NoColor(ref mut wtr) => wtr.write(buf),\n            termcolor::StandardStream::Print(ref mut wtr) => wtr.write(buf),\n        }\n    }\n}",
+            output: "writer mutates itself; buf is only borrowed",
+            takeaway: "&mut self 让 writer 能写内部状态，buf: &[u8] 只是借来读取。",
+        },
+        "structs-enums" => SourceContext {
+            title: "ripgrep: DecompressionMatcherBuilder",
+            source_path: "crates/cli/src/decompress.rs",
+            source_lines: "L15-L45",
+            source_role: "保存解压命令配置，并用 builder 方法逐步构造 matcher。",
+            book_rule: "struct 保存相关字段，impl 放类型行为；&mut self 方法修改自身并可返回自身继续链式调用。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/decompress.rs#L15-L45",
+            code: "pub struct DecompressionMatcherBuilder {\n    commands: Vec<DecompressionCommand>,\n    defaults: bool,\n}\n\nimpl DecompressionMatcherBuilder {\n    pub fn new() -> DecompressionMatcherBuilder {\n        DecompressionMatcherBuilder { commands: vec![], defaults: true }\n    }\n\n    pub fn defaults(&mut self, yes: bool) -> &mut DecompressionMatcherBuilder {\n        self.defaults = yes;\n        self\n    }\n}",
+            output: "builder stores state, then returns &mut self for chaining",
+            takeaway: "struct 承载配置数据，impl 定义行为；&mut self 修改 builder 后再把自己借回去。",
+        },
+        "result-option" => SourceContext {
+            title: "ripgrep: decompressor lookup",
+            source_path: "crates/cli/src/decompress.rs",
+            source_lines: "L179-L187",
+            source_role: "根据文件路径查找匹配的解压命令；找不到时正常返回 None。",
+            book_rule: "Option 表达可能没有值；Result 表达可能失败，二者不要混用成隐藏异常。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/cli/src/decompress.rs#L179-L187",
+            code: "pub fn command<P: AsRef<Path>>(&self, path: P) -> Option<Command> {\n    if let Some(i) = self.globs.matches(path).into_iter().next_back() {\n        let decomp_cmd = &self.commands[i];\n        let mut cmd = Command::new(&decomp_cmd.bin);\n        cmd.args(&decomp_cmd.args);\n        return Some(cmd);\n    }\n    None\n}",
+            output: "Some(Command) or None",
+            takeaway: "没有匹配的解压器不是异常，而是 None；I/O 或进程问题才走 Result 错误路径。",
+        },
+        "collections" => SourceContext {
+            title: "ripgrep: config args parser",
+            source_path: "crates/core/flags/config.rs",
+            source_lines: "L84-L108",
+            source_role: "逐行解析配置文件，把参数和解析错误分别收集到两个 Vec。",
+            book_rule: "Vec 是可增长集合；push 会把拥有的数据放入集合，修改集合需要 mut。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/flags/config.rs#L84-L108",
+            code: "fn parse_reader<R: std::io::Read>(\n    rdr: R,\n) -> anyhow::Result<(Vec<OsString>, Vec<anyhow::Error>)> {\n    let (mut args, mut errs) = (vec![], vec![]);\n    bufrdr.for_byte_line_with_terminator(|line| {\n        match line.to_os_str() {\n            Ok(osstr) => args.push(osstr.to_os_string()),\n            Err(err) => errs.push(anyhow::anyhow!(\"{err}\")),\n        }\n        Ok(true)\n    })?;\n    Ok((args, errs))\n}",
+            output: "returns collected args and parse errors",
+            takeaway: "ripgrep 把配置行转成拥有所有权的 OsString 后 push 进 Vec，同时把错误收集到另一个 Vec。",
+        },
+        "iterators-traits" => SourceContext {
+            title: "ripgrep: search iterator pipeline",
+            source_path: "crates/core/main.rs",
+            source_lines: "L107-L151",
+            source_role: "把目录遍历结果转换成可搜索 haystack，再逐个执行搜索。",
+            book_rule: "迭代器适配器是惰性的；filter_map 描述转换，for 循环才真正消费数据流。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L107-L151",
+            code: "let unsorted = args\n    .walk_builder()?\n    .build()\n    .filter_map(|result| haystack_builder.build_from_result(result));\nlet haystacks = args.sort(unsorted);\n\nfor haystack in haystacks {\n    let search_result = searcher.search(&haystack)?;\n    matched = matched || search_result.has_match();\n}",
+            output: "walk entries become searchable haystacks",
+            takeaway: "目录遍历先产生迭代器，filter_map 丢掉不可搜索项并提取 Haystack，for 循环才真正消费它。",
+        },
+        "generics-traits" => candidate_as_ref_source(),
+        "concurrency" => files_parallel_channel_source(),
+        _ => SourceContext {
+            title: "ripgrep 源码",
+            source_path: "crates/core/main.rs",
+            source_lines: "L43-L66",
+            source_role: "ripgrep 的入口源码。",
+            book_rule: "题目必须回到具体源码证据判断。",
+            source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L43-L66",
+            code: "fn main() -> ExitCode { /* ... */ }",
+            output: "source-backed exercise",
+            takeaway: "回到源码证据，而不是背孤立概念。",
+        },
+    }
+}
+
+fn sink_error_display_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: SinkError 的 Display 约束",
+        source_path: "crates/searcher/src/sink.rs",
+        source_lines: "L20-L43",
+        source_role: "把搜索过程里的错误消息统一转换成具体错误类型，要求消息能被用户友好地格式化。",
+        book_rule: "泛型参数如果要调用 to_string() 或用 {} 输出，就必须声明 Display 能力约束。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/searcher/src/sink.rs#L20-L43",
+        code: "pub trait SinkError: Sized {\n    fn error_message<T: std::fmt::Display>(message: T) -> Self;\n}\n\nimpl SinkError for io::Error {\n    fn error_message<T: std::fmt::Display>(message: T) -> io::Error {\n        io::Error::new(io::ErrorKind::Other, message.to_string())\n    }\n}",
+        output: "Display message becomes a concrete error",
+        takeaway: "T 不是任意类型；ripgrep 需要把 message 转成字符串，所以 T 必须实现 std::fmt::Display。",
+    }
+}
+
+fn candidate_as_ref_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: Candidate::new 的 AsRef<Path>",
+        source_path: "crates/globset/src/lib.rs",
+        source_lines: "L615-L619",
+        source_role: "把 path-like 输入借成 Path，再构造成 glob 匹配候选对象。",
+        book_rule: "泛型约束来自函数体真实使用的能力；调用 path.as_ref() 就需要 AsRef<Path>。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L615-L619",
+        code: "impl<'a> Candidate<'a> {\n    pub fn new<P: AsRef<Path> + ?Sized>(path: &'a P) -> Candidate<'a> {\n        Self::from_cow(Vec::from_path_lossy(path.as_ref()))\n    }\n}",
+        output: "path-like input becomes Candidate<'a>",
+        takeaway: "AsRef<Path> 让 API 接收多种 path-like 输入；'a 说明 Candidate 借用来自输入 path。",
+    }
+}
+
+fn candidate_lifetime_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: Candidate<'a> 借用路径数据",
+        source_path: "crates/globset/src/lib.rs",
+        source_lines: "L599-L633",
+        source_role: "保存 path、basename、ext 等借用或拥有的数据，供 globset 后续匹配。",
+        book_rule: "生命周期标注描述引用数据和输入参数之间的有效期关系，不会延长局部变量生命。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L599-L633",
+        code: "pub struct Candidate<'a> {\n    path: Cow<'a, [u8]>,\n    basename: Cow<'a, [u8]>,\n    ext: Cow<'a, [u8]>,\n}\n\nimpl<'a> Candidate<'a> {\n    pub fn new<P: AsRef<Path> + ?Sized>(path: &'a P) -> Candidate<'a> {\n        Self::from_cow(Vec::from_path_lossy(path.as_ref()))\n    }\n}",
+        output: "Candidate borrows or owns path bytes for lifetime 'a",
+        takeaway: "Candidate<'a> 的 'a 说明内部数据和输入 path 的借用关系，不是让临时数据活更久。",
+    }
+}
+
+fn candidate_debug_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: Candidate 的 Debug 实现",
+        source_path: "crates/globset/src/lib.rs",
+        source_lines: "L605-L613",
+        source_role: "为 Candidate 提供调试输出，方便开发者查看 path、basename 和扩展名字段。",
+        book_rule: "{:?} 使用 Debug；泛型代码要调试打印 T，就需要 Debug 约束。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L605-L613",
+        code: "impl<'a> std::fmt::Debug for Candidate<'a> {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        f.debug_struct(\"Candidate\")\n            .field(\"path\", &self.path.as_bstr())\n            .finish()\n    }\n}",
+        output: "Candidate can be debug-formatted",
+        takeaway: "Display 面向用户输出，Debug 面向开发调试；题目里的 {:?} 要找的是 Debug。",
+    }
+}
+
+fn files_parallel_channel_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: files_parallel channel",
+        source_path: "crates/core/main.rs",
+        source_lines: "L283-L326",
+        source_role: "多个 worker 并行遍历文件，把要打印的 Haystack 通过 channel 交给单独打印线程。",
+        book_rule: "channel 发送值会转移所有权；接收端消费消息，发送端不能继续使用已发送值。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L283-L326",
+        code: "let (tx, rx) = mpsc::channel::<crate::haystack::Haystack>();\nlet print_thread = thread::spawn(move || -> std::io::Result<()> {\n    for haystack in rx.iter() {\n        path_printer.write(haystack.path())?;\n    }\n    Ok(())\n});\n\nmatch tx.send(haystack) {\n    Ok(_) => WalkState::Continue,\n    Err(_) => WalkState::Quit,\n}",
+        output: "workers send haystacks; one thread prints paths",
+        takeaway: "ripgrep 用 channel 转移 Haystack 所有权到打印线程，避免多个 worker 同时写 stdout。",
+    }
+}
+
+fn files_parallel_thread_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: files_parallel printing thread",
+        source_path: "crates/core/main.rs",
+        source_lines: "L283-L294",
+        source_role: "启动一个专门打印路径的线程，并让闭包拥有 path_printer 和 rx。",
+        book_rule: "thread::spawn 的闭包可能比当前栈帧活得久，move 闭包通过取得所有权避免悬垂引用。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L283-L294",
+        code: "let print_thread = thread::spawn(move || -> std::io::Result<()> {\n    for haystack in rx.iter() {\n        path_printer.write(haystack.path())?;\n    }\n    Ok(())\n});",
+        output: "printing work runs on a spawned thread",
+        takeaway: "move 让打印线程拥有捕获值，避免线程引用已经结束的栈变量。",
+    }
+}
+
+fn files_parallel_join_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: join 等待打印线程",
+        source_path: "crates/core/main.rs",
+        source_lines: "L321-L326",
+        source_role: "关闭 sender 后等待打印线程结束，并处理打印线程返回的 I/O 错误。",
+        book_rule: "join 会阻塞当前线程直到目标线程结束，并取回线程闭包的返回结果。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L321-L326",
+        code: "drop(tx);\nif let Err(err) = print_thread.join().unwrap() {\n    if err.kind() != std::io::ErrorKind::BrokenPipe {\n        return Err(err.into());\n    }\n}",
+        output: "wait for printer thread before returning",
+        takeaway: "ripgrep 必须等待打印线程把 channel 中剩余路径处理完，再决定是否返回错误。",
+    }
+}
+
+fn files_parallel_state_source() -> SourceContext {
+    SourceContext {
+        title: "ripgrep: files_parallel shared state",
+        source_path: "crates/core/main.rs",
+        source_lines: "L279-L314",
+        source_role: "在多个 worker 间共享匹配状态，并把发送端 clone 给每个 worker。",
+        book_rule: "跨线程共享状态需要线程安全类型；多个发送者通过 clone 句柄参与同一个 channel。",
+        source_url: "https://github.com/BurntSushi/ripgrep/blob/master/crates/core/main.rs#L279-L314",
+        code: "let matched = AtomicBool::new(false);\nlet (tx, rx) = mpsc::channel::<crate::haystack::Haystack>();\nargs.walk_builder()?.build_parallel().run(|| {\n    let matched = &matched;\n    let tx = tx.clone();\n    Box::new(move |result| {\n        matched.store(true, Ordering::SeqCst);\n        match tx.send(haystack) {\n            Ok(_) => WalkState::Continue,\n            Err(_) => WalkState::Quit,\n        }\n    })\n});",
+        output: "workers share state and cloned senders",
+        takeaway: "并行代码里共享状态和消息发送都必须显式选择线程安全的类型与所有权路径。",
+    }
 }
 
 fn leak(value: String) -> &'static str {
@@ -3931,5 +4211,49 @@ mod tests {
             assert!((1..=3).contains(&exercise.level()));
             ids.push(exercise.id);
         }
+    }
+
+    #[test]
+    fn every_exercise_has_source_context() {
+        for exercise in exercises() {
+            let source = exercise.source_context();
+            assert!(
+                source.source_path.starts_with("crates/"),
+                "{} has invalid source path {}",
+                exercise.id,
+                source.source_path
+            );
+            assert!(
+                source.source_url.contains("github.com/BurntSushi/ripgrep"),
+                "{} has invalid source url {}",
+                exercise.id,
+                source.source_url
+            );
+            assert!(
+                !source.source_lines.is_empty()
+                    && !source.source_role.is_empty()
+                    && !source.book_rule.is_empty()
+                    && !source.code.is_empty()
+                    && !source.takeaway.is_empty(),
+                "{} has incomplete source context",
+                exercise.id
+            );
+        }
+    }
+
+    #[test]
+    fn key_exercises_use_precise_source_contexts() {
+        let display = exercise_by_id("impl-trait-param")
+            .expect("impl trait exercise")
+            .source_context();
+        assert_eq!(display.source_path, "crates/searcher/src/sink.rs");
+        assert!(display.code.contains("error_message<T: std::fmt::Display>"));
+
+        let join = exercise_by_id("thread-join")
+            .expect("thread join exercise")
+            .source_context();
+        assert_eq!(join.source_path, "crates/core/main.rs");
+        assert_eq!(join.source_lines, "L321-L326");
+        assert!(join.code.contains("print_thread.join().unwrap()"));
     }
 }

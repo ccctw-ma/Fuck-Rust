@@ -1,7 +1,7 @@
 use learning_core::{
     cards, exercise_by_id, exercises, exercises_for_lesson, lessons, next_exercise_after,
     previous_exercise_before, recommend_next_exercise, recommend_next_lesson, stage_summaries,
-    Exercise, ExerciseKind, Lesson, UserAnswer,
+    Exercise, ExerciseKind, Lesson, SourceContext, UserAnswer,
 };
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -11,10 +11,9 @@ use yew_router::prelude::*;
 use crate::app::{ProgressHandle, Route};
 use crate::components::{DemoBlock, MetricCard, StageCard};
 use crate::i18n::{
-    answer_summary, card_fix, card_summary, card_title, demo_takeaway, demo_title,
-    exercise_explanation, exercise_hint, exercise_kind_label, exercise_level_label,
-    exercise_option, exercise_prompt, exercise_title, lesson_goal, lesson_summary, lesson_title,
-    stage_label, t, Language,
+    answer_summary, card_fix, card_summary, card_title, exercise_explanation, exercise_hint,
+    exercise_kind_label, exercise_level_label, exercise_option, exercise_prompt, exercise_title,
+    lesson_goal, lesson_summary, lesson_title, stage_label, t, Language,
 };
 
 #[derive(Properties, PartialEq)]
@@ -388,11 +387,7 @@ fn render_exercise_support(
     language: Language,
     expected: Option<&str>,
 ) -> Html {
-    let lesson = lessons()
-        .iter()
-        .find(|lesson| lesson.id == exercise.lesson_id)
-        .expect("exercise references a lesson");
-    let source = exercise_source_context(exercise, lesson, language);
+    let source = exercise.source_context();
     let steps = exercise_reasoning_steps(exercise, language, expected, source);
     let trap = exercise_common_trap(exercise, language, source);
 
@@ -414,7 +409,7 @@ fn exercise_reasoning_steps(
     exercise: &Exercise,
     language: Language,
     expected: Option<&str>,
-    source: ExerciseSourceContext,
+    source: SourceContext,
 ) -> Vec<String> {
     let expected_copy = expected
         .map(|answer| match language {
@@ -465,11 +460,7 @@ fn exercise_reasoning_steps(
     }
 }
 
-fn exercise_common_trap(
-    exercise: &Exercise,
-    language: Language,
-    source: ExerciseSourceContext,
-) -> String {
+fn exercise_common_trap(exercise: &Exercise, language: Language, source: SourceContext) -> String {
     match language {
         Language::Zh => format!(
             "不要把这题当成脱离源码的概念题。必须同时满足三件事：题目代码 `{}` 读得通、参考答案能解释 `{} {}` 的源码规则、解释能对应到“{}”。提示只作为辅助，最终以源码和题干证据为准。",
@@ -558,7 +549,7 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
         .iter()
         .find(|lesson| lesson.id == exercise.lesson_id)
         .expect("exercise references a lesson");
-    let source = exercise_source_context(exercise, lesson, language);
+    let source = exercise.source_context();
 
     html! {
         <>
@@ -588,24 +579,11 @@ fn render_demo_for_exercise(exercise: &Exercise, language: Language) -> Html {
     }
 }
 
-#[derive(Clone, Copy)]
-struct ExerciseSourceContext {
-    title: &'static str,
-    source_path: &'static str,
-    source_lines: &'static str,
-    source_role: &'static str,
-    book_rule: &'static str,
-    source_url: &'static str,
-    code: &'static str,
-    output: &'static str,
-    takeaway: &'static str,
-}
-
 fn enriched_lesson_guide(
     exercise: &Exercise,
     lesson: &Lesson,
     language: Language,
-    source: ExerciseSourceContext,
+    source: SourceContext,
 ) -> Vec<String> {
     vec![
         exercise_knowledge_point(exercise, language),
@@ -618,7 +596,7 @@ fn enriched_lesson_guide(
 fn enriched_lesson_goals(
     exercise: &Exercise,
     language: Language,
-    source: ExerciseSourceContext,
+    source: SourceContext,
 ) -> Vec<String> {
     vec![
         exercise_source_mapping(exercise, source, language),
@@ -631,7 +609,7 @@ fn enriched_lesson_goals(
     ]
 }
 
-fn source_reading_focus(source: ExerciseSourceContext, language: Language) -> String {
+fn source_reading_focus(source: SourceContext, language: Language) -> String {
     match language {
         Language::Zh => format!(
             "先把源码定位到 `{}` {}，理解它如何使用本题知识点，再回到题目判断空白或选项。",
@@ -644,178 +622,9 @@ fn source_reading_focus(source: ExerciseSourceContext, language: Language) -> St
     }
 }
 
-fn exercise_source_context(
-    exercise: &Exercise,
-    lesson: &Lesson,
-    language: Language,
-) -> ExerciseSourceContext {
-    match (exercise.id, language) {
-        (
-            "trait-bound-display" | "impl-trait-param" | "where-clause",
-            Language::Zh,
-        ) => ExerciseSourceContext {
-            title: "ripgrep: SinkError 的 Display 约束",
-            source_path: "crates/searcher/src/sink.rs",
-            source_lines: "L20-L43",
-            source_role: "把搜索过程里的错误消息统一转换成具体错误类型，要求消息能被用户友好地格式化。",
-            book_rule: "泛型参数如果要调用 `to_string()` 或用 `{}` 输出，就必须声明 `Display` 能力约束。",
-            source_url:
-                "https://github.com/BurntSushi/ripgrep/blob/master/crates/searcher/src/sink.rs#L20-L43",
-            code: "pub trait SinkError: Sized {\n    fn error_message<T: std::fmt::Display>(message: T) -> Self;\n}\n\nimpl SinkError for io::Error {\n    fn error_message<T: std::fmt::Display>(message: T) -> io::Error {\n        io::Error::new(io::ErrorKind::Other, message.to_string())\n    }\n}",
-            output: "Display message becomes a concrete error",
-            takeaway: "这里的 T 不是任意类型；ripgrep 需要把 message 转成字符串，所以 T 必须实现 `std::fmt::Display`。",
-        },
-        (
-            "trait-bound-display" | "impl-trait-param" | "where-clause",
-            Language::En,
-        ) => ExerciseSourceContext {
-            title: "ripgrep: SinkError Display bound",
-            source_path: "crates/searcher/src/sink.rs",
-            source_lines: "L20-L43",
-            source_role:
-                "Converts search-time error messages into concrete error types, requiring user-facing formatting.",
-            book_rule:
-                "A generic parameter needs a `Display` bound when code calls `to_string()` or formats it with `{}`.",
-            source_url:
-                "https://github.com/BurntSushi/ripgrep/blob/master/crates/searcher/src/sink.rs#L20-L43",
-            code: "pub trait SinkError: Sized {\n    fn error_message<T: std::fmt::Display>(message: T) -> Self;\n}\n\nimpl SinkError for io::Error {\n    fn error_message<T: std::fmt::Display>(message: T) -> io::Error {\n        io::Error::new(io::ErrorKind::Other, message.to_string())\n    }\n}",
-            output: "Display message becomes a concrete error",
-            takeaway:
-                "T is not arbitrary here. ripgrep turns message into text, so T must implement `std::fmt::Display`.",
-        },
-        ("derive-debug-bound", Language::Zh) => ExerciseSourceContext {
-            title: "ripgrep: Candidate 的 Debug 实现",
-            source_path: "crates/globset/src/lib.rs",
-            source_lines: "L605-L613",
-            source_role: "为 Candidate 提供调试输出，方便开发者查看 path、basename 和扩展名字段。",
-            book_rule: "`{:?}` 使用 Debug；如果泛型代码要调试打印 T，就需要 `Debug` 约束。",
-            source_url:
-                "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L605-L613",
-            code: "impl<'a> std::fmt::Debug for Candidate<'a> {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        f.debug_struct(\"Candidate\")\n            .field(\"path\", &self.path.as_bstr())\n            .finish()\n    }\n}",
-            output: "Candidate can be debug-formatted",
-            takeaway: "Display 面向用户输出，Debug 面向开发调试；题目里的 `{:?}` 要找的是 Debug。",
-        },
-        ("derive-debug-bound", Language::En) => ExerciseSourceContext {
-            title: "ripgrep: Candidate Debug impl",
-            source_path: "crates/globset/src/lib.rs",
-            source_lines: "L605-L613",
-            source_role: "Provides developer-facing debug output for Candidate fields.",
-            book_rule:
-                "`{:?}` uses Debug; generic code that debug-prints T needs a `Debug` bound.",
-            source_url:
-                "https://github.com/BurntSushi/ripgrep/blob/master/crates/globset/src/lib.rs#L605-L613",
-            code: "impl<'a> std::fmt::Debug for Candidate<'a> {\n    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n        f.debug_struct(\"Candidate\")\n            .field(\"path\", &self.path.as_bstr())\n            .finish()\n    }\n}",
-            output: "Candidate can be debug-formatted",
-            takeaway:
-                "Display is for user output; Debug is for developer diagnostics. `{:?}` points to Debug.",
-        },
-        _ => ExerciseSourceContext {
-            title: demo_title(lesson, language),
-            source_path: lesson.demo.source_path,
-            source_lines: lesson.demo.source_lines,
-            source_role: demo_source_role(lesson, language),
-            book_rule: demo_book_rule(lesson, language),
-            source_url: lesson.demo.source_url,
-            code: lesson.demo.code,
-            output: lesson.demo.output,
-            takeaway: demo_takeaway(lesson, language),
-        },
-    }
-}
-
-fn demo_source_role(lesson: &Lesson, language: Language) -> &'static str {
-    if language == Language::Zh {
-        return lesson.demo.source_role;
-    }
-
-    match lesson.id {
-        "syntax-basics" => {
-            "ripgrep's executable entry point wires flag parsing, search execution, and error exit codes together."
-        }
-        "control-flow" => {
-            "Selects the execution path for search, file listing, type listing, or shell completion generation."
-        }
-        "data-functions" => {
-            "Reads pattern lines from an input reader and collects searchable patterns into `Vec<String>`."
-        }
-        "ownership" => {
-            "Closes a child process stdout pipe and waits for the external decompressor process."
-        }
-        "slices" => {
-            "Validates raw pattern bytes as UTF-8 before treating them as a searchable text pattern."
-        }
-        "borrowing" => {
-            "Unifies output backends under `io::Write` so search results can be written safely."
-        }
-        "structs-enums" => {
-            "Stores decompression command configuration and exposes builder methods for matcher construction."
-        }
-        "result-option" => {
-            "Looks up a decompressor command for a path and returns `None` when no match is found."
-        }
-        "collections" => {
-            "Parses config lines and collects arguments and parse errors into separate `Vec` values."
-        }
-        "iterators-traits" => {
-            "Turns directory walk results into searchable haystacks before running the search loop."
-        }
-        "generics-traits" => {
-            "Wraps a candidate path so globset can test it while preserving borrowed path data."
-        }
-        "concurrency" => {
-            "Lets parallel workers send paths to one printer thread through a channel."
-        }
-        _ => lesson.demo.source_role,
-    }
-}
-
-fn demo_book_rule(lesson: &Lesson, language: Language) -> &'static str {
-    if language == Language::Zh {
-        return lesson.demo.book_rule;
-    }
-
-    match lesson.id {
-        "syntax-basics" => {
-            "`match` is an expression, arm tails can become return values, and macros perform side effects."
-        }
-        "control-flow" => "`match` must cover all modes, while guards refine a matched pattern.",
-        "data-functions" => {
-            "Function signatures state input, output, and error boundaries; a tail expression returns the final `Result`."
-        }
-        "ownership" => {
-            "Moves transfer resource ownership; `Option::take` moves a value out and leaves `None` behind."
-        }
-        "slices" => {
-            "Slices are borrowed views; a returned `&str` must stay tied to the input byte slice."
-        }
-        "borrowing" => {
-            "`&mut self` gives exclusive mutation of writer state, while `&[u8]` only borrows the buffer for reading."
-        }
-        "structs-enums" => {
-            "Structs hold related fields, impl blocks define behavior, and `&mut self` methods can support chaining."
-        }
-        "result-option" => {
-            "`Option` models absence and `Result` models recoverable failure; keep those meanings separate."
-        }
-        "collections" => {
-            "`Vec` is growable; `push` stores owned values and mutating the collection requires `mut`."
-        }
-        "iterators-traits" => {
-            "Iterator adapters are lazy; `filter_map` describes a transformation and `for` consumes it."
-        }
-        "generics-traits" => {
-            "Trait bounds describe accepted capabilities, and lifetimes relate borrowed output to borrowed input."
-        }
-        "concurrency" => {
-            "Channels transfer ownership between threads, and `thread::spawn` closures often use `move`."
-        }
-        _ => lesson.demo.book_rule,
-    }
-}
-
 fn exercise_source_mapping(
     exercise: &Exercise,
-    source: ExerciseSourceContext,
+    source: SourceContext,
     language: Language,
 ) -> String {
     match language {
@@ -834,7 +643,7 @@ fn exercise_source_mapping(
     }
 }
 
-fn exercise_source_evidence(source: ExerciseSourceContext, language: Language) -> String {
+fn exercise_source_evidence(source: SourceContext, language: Language) -> String {
     match language {
         Language::Zh => format!(
             "{}：`{}` {} 里的关键代码就是本题判断依据，不再混用整课背景。",
@@ -891,7 +700,7 @@ fn exercise_knowledge_point(exercise: &Exercise, language: Language) -> String {
 fn exercise_book_link(
     exercise: &Exercise,
     lesson: &Lesson,
-    source: ExerciseSourceContext,
+    source: SourceContext,
     language: Language,
 ) -> String {
     match (exercise.id, language) {

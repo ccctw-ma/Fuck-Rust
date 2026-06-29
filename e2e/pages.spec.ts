@@ -117,7 +117,7 @@ test.describe('Rust via ripgrep pages', () => {
     await page.getByRole('button', { name: '等待子线程执行完成' }).click();
     await page.getByRole('button', { name: '提交答案' }).click();
 
-    await expect(page.getByText(/源码证据：先看 `crates\/core\/main\.rs` L271-L326/)).toBeVisible();
+    await expect(page.getByText(/源码证据：先看 `crates\/core\/main\.rs` L321-L326/)).toBeVisible();
     await expect(page.getByText(/题干代码是 `let handle = std::thread::spawn/)).toBeVisible();
     await expect(page.locator('.solution-steps').getByText(/`join` 会阻塞当前线程/)).toBeVisible();
     await expect(page.getByText(/先别急着选答案/)).not.toBeVisible();

@@ -7,7 +7,7 @@ pub use curriculum::{
 };
 pub use exercises::{
     exercise_by_id, exercises, exercises_for_lesson, Answer, CheckOutcome, Exercise,
-    ExerciseDifficulty, ExerciseKind, UserAnswer,
+    ExerciseDifficulty, ExerciseKind, SourceContext, UserAnswer,
 };
 pub use progress::{AttemptRecord, ProgressSnapshot, WeakLesson};
 
