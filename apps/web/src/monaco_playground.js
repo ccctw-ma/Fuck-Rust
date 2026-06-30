@@ -1,5 +1,6 @@
 const MONACO_VERSION = "0.52.2";
 const MONACO_BASE = `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs`;
+const MONACO_LOAD_TIMEOUT_MS = 8000;
 
 let monacoPromise;
 let rustProviderRegistered = false;
@@ -106,7 +107,7 @@ export function createMonacoRustEditor(container, initialValue, onChange) {
   container.textContent = "Loading Monaco editor...";
   container.classList.add("is-loading");
 
-  loadMonaco()
+  withTimeout(loadMonaco(), MONACO_LOAD_TIMEOUT_MS)
     .then((monaco) => {
       if (handle.disposed) {
         return;
@@ -158,6 +159,25 @@ export function createMonacoRustEditor(container, initialValue, onChange) {
     });
 
   return handle;
+}
+
+function withTimeout(promise, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(
+      () => reject(new Error("Monaco loader timed out")),
+      timeoutMs,
+    );
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
 }
 
 export function getMonacoEditorValue(handle) {

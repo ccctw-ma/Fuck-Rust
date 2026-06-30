@@ -155,6 +155,31 @@ mod tests {
     }
 
     #[test]
+    fn next_exercise_follows_visible_lesson_order() {
+        for lesson in lessons() {
+            let lesson_exercises = exercises_for_lesson(lesson.id);
+            assert!(
+                lesson_exercises.len() >= 2,
+                "{} should have enough exercises",
+                lesson.id
+            );
+
+            for pair in lesson_exercises.windows(2) {
+                let current = pair[0];
+                let expected_next = pair[1];
+                let actual_next =
+                    next_exercise_after(current.id).expect("next exercise should exist");
+
+                assert_eq!(
+                    actual_next.id, expected_next.id,
+                    "next after {} should stay in {} visible order",
+                    current.id, lesson.id
+                );
+            }
+        }
+    }
+
+    #[test]
     fn previous_exercise_stays_in_curriculum_order() {
         let previous = previous_exercise_before("tuple-index").expect("previous exercise exists");
 

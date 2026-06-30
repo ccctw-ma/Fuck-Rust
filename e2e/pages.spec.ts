@@ -72,7 +72,7 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(drawer.getByText(/拖拽左侧边框调整宽度|Drag the left edge to resize/)).not.toBeVisible();
     await expect(drawer.locator('.playground-resize-rail')).toBeVisible();
     await expect(drawer.locator('.playground-monaco-host')).toBeVisible();
-    await expect(drawer.locator('.monaco-editor')).toBeVisible({ timeout: 20_000 });
+    await expect(drawer.locator('.monaco-editor, .monaco-fallback')).toBeVisible({ timeout: 20_000 });
     await expect(drawer.getByRole('button', { name: /运行代码|Run code/ })).toBeVisible();
     await expect(drawer.getByText(/运行输出|Output/)).toBeVisible();
     const editorBox = await drawer.locator('.playground-editor-shell').boundingBox();
@@ -221,6 +221,33 @@ test.describe('Rust via ripgrep pages', () => {
     await expect(activeRailItem).toBeVisible();
     await expect(activeRailItem).toContainText(/从 pattern 读取读函数签名与返回值|Data Types, Functions, and Returns/);
     await expect(activeRailItem.locator('.status-dot.active')).toBeVisible();
+  });
+
+  test('next exercise follows visible order inside every lesson module', async ({ page }) => {
+    await page.goto('/learn');
+
+    const firstLinks = await page.locator('.rail-item').evaluateAll((items) =>
+      items.map((item) => ({
+        href: (item as HTMLAnchorElement).getAttribute('href') ?? '',
+        title: item.querySelector('.rail-item-title')?.textContent?.trim() ?? '',
+      })),
+    );
+
+    expect(firstLinks.length).toBeGreaterThanOrEqual(12);
+
+    for (const item of firstLinks) {
+      await page.goto(item.href);
+
+      const activeBefore = page.locator('.rail-item.active');
+      await expect(activeBefore).toContainText(item.title);
+      await expect(page.locator('.exercise-index-pill')).toContainText(/第 1\/|1\//);
+
+      await page.getByRole('link', { name: /下一题|Next/ }).click();
+
+      const activeAfter = page.locator('.rail-item.active');
+      await expect(activeAfter).toContainText(item.title);
+      await expect(page.locator('.exercise-index-pill')).toContainText(/第 2\/|2\//);
+    }
   });
 
   test('lesson card action buttons keep breathing room from content', async ({ page }) => {
